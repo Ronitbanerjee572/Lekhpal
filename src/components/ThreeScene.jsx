@@ -24,7 +24,7 @@ function Model(props) {
     ref.current.rotation.z = 0;
   });
 
-  return <primitive ref={ref} object={gltf.scene} scale={props.scale ?? 0.3} position={props.position ?? [0, -1, 0]} />;
+  return <primitive ref={ref} object={gltf.scene} scale={props.scale ?? 0.37} position={props.position ?? [0, -1.2, 0]} />;
 }
 
 useGLTF.preload(modelPath);
