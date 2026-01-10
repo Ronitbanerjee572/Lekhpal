@@ -1,49 +1,113 @@
-import React, { useRef } from 'react';
-import { Canvas, useFrame } from '@react-three/fiber';
-import { OrbitControls, Stars } from '@react-three/drei';
+import React, { useEffect, useState } from 'react';
+import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
+import 'leaflet/dist/leaflet.css';
+import L from 'leaflet';
+import axios from 'axios';
+import markerIcon from 'leaflet/dist/images/marker-icon.png';
+import markerShadow from 'leaflet/dist/images/marker-shadow.png';
 
-function Globe() {
-  const mesh = useRef();
+let DefaultIcon = L.icon({
+    iconUrl: markerIcon,
+    shadowUrl: markerShadow,
+    iconSize: [25, 41],
+    iconAnchor: [12, 41],
+    popupAnchor: [1, -34],
+});
+L.Marker.prototype.options.icon = DefaultIcon;
 
-  useFrame(() => {
-    mesh.current.rotation.y += 0.002;
-  });
-
-  return (
-    <mesh ref={mesh} scale={2.5}>
-      <sphereGeometry args={[1, 32, 32]} />
-      <meshStandardMaterial color="#44aaee" roughness={0.7} metalness={0.1} />
-      {/* Simple Land Markers */}
-      <mesh position={[0.8, 0.2, 0.5]} scale={0.05}>
-        <sphereGeometry args={[1, 16, 16]} />
-        <meshBasicMaterial color="#ee6611" />
-      </mesh>
-      <mesh position={[-0.5, 0.5, 0.8]} scale={0.05}>
-        <sphereGeometry args={[1, 16, 16]} />
-        <meshBasicMaterial color="#ee6611" />
-      </mesh>
-      <mesh position={[0.2, -0.6, 0.7]} scale={0.05}>
-        <sphereGeometry args={[1, 16, 16]} />
-        <meshBasicMaterial color="#ee6611" />
-      </mesh>
-    </mesh>
-  );
+function ChangeView({ bounds, position }) {
+    const map = useMap();
+    useEffect(() => {
+        if (bounds) {
+            map.fitBounds(bounds, {     //zooming korar jonno
+                padding: [50, 50], 
+                maxZoom: 16, 
+                animate: true, 
+                duration: 1.5 
+            });
+        } else if (position) {
+            map.setView(position, 16, { animate: true });
+        }
+    }, [bounds, position, map]);
+    return null;
 }
 
-export default function GlobeView() {
-  return (
-    <div className="h-[60vh] w-full bg-black rounded-xl overflow-hidden shadow-2xl relative">
-        <div className="absolute top-4 left-4 z-10 bg-black/50 text-white p-2 rounded backdrop-blur-sm">
-            <p className="text-sm font-bold">Interactive Land Map</p>
-            <p className="text-xs text-gray-300">Drag to rotate • Scroll to zoom</p>
+export default function GlobeView({ pinCode }) {
+    const [position, setPosition] = useState(null);
+    const [bounds, setBounds] = useState(null);
+    const [address, setAddress] = useState("");
+    const [loading, setLoading] = useState(false);
+
+    useEffect(() => {
+        if (pinCode && pinCode.toString().length === 6) {
+            fetchCoords(pinCode);
+        }
+    }, [pinCode]);
+
+    const fetchCoords = async (pin) => {
+        setLoading(true);
+        try {
+            const response = await axios.get(
+                `https://nominatim.openstreetmap.org/search?format=json&postalcode=${pin}&country=India`
+            );
+            
+            if (response.data.length > 0) {
+                const data = response.data[0];
+                const { lat, lon, display_name, boundingbox } = data;
+                
+                setPosition([parseFloat(lat), parseFloat(lon)]);
+                setAddress(display_name);
+
+                const areaBounds = [
+                    [parseFloat(boundingbox[0]), parseFloat(boundingbox[2])],
+                    [parseFloat(boundingbox[1]), parseFloat(boundingbox[3])]
+                ];
+                setBounds(areaBounds);
+            }
+        } catch (error) {
+            console.error("Map Error:", error);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    return (
+        <div className="h-[60vh] w-full bg-white rounded-xl overflow-hidden shadow-2xl relative border border-gray-200">
+            {/* Loading Indicator */}
+            {loading && (
+                <div className="absolute inset-0 z-[2000] bg-white/60 flex items-center justify-center backdrop-blur-sm">
+                    <div className="bg-white p-4 rounded-full shadow-lg border border-blue-100">
+                        <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-600"></div>
+                    </div>
+                </div>
+            )}
+
+            <MapContainer 
+                center={[22.5726, 88.3639]} 
+                zoom={12} 
+                scrollWheelZoom={true}
+                style={{ height: '100%', width: '100%' }}
+            >
+                
+                <TileLayer
+                    attribution='&copy; Google'
+                    url="https://mt1.google.com/vt/lyrs=m&x={x}&y={y}&z={z}"
+                />
+
+                {position && (
+                    <>
+                        <Marker position={position}>
+                            <Popup>
+                                <div className="text-sm font-sans">
+                                    <strong className="text-blue-700">Land Location</strong><br />
+                                    <span className="text-gray-600 text-xs">{address}</span>
+                                </div>
+                            </Popup>
+                        </Marker>
+                        <ChangeView bounds={bounds} position={position} />
+                    </>
+                )}
+            </MapContainer>
         </div>
-      <Canvas>
-        <ambientLight intensity={0.5} />
-        <pointLight position={[10, 10, 10]} intensity={1.5} />
-        <Stars radius={100} depth={50} count={5000} factor={4} saturation={0} fade speed={1} />
-        <Globe />
-        <OrbitControls enableZoom={true} enablePan={false} minDistance={3} maxDistance={8} />
-      </Canvas>
-    </div>
-  );
+    );
 }

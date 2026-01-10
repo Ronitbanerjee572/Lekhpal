@@ -1,0 +1,41 @@
+{
+  "name": "land-registry-application",
+  "version": "1.0.0",
+  "description": "",
+  "main": "app.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node app.js",
+    "server": "node app.js"
+  },
+  "dependencies": {
+    "axios": "^1.6.2",
+    "bcrypt": "^6.0.0",
+    "bcryptjs": "^2.4.3",
+    "body-parser": "^1.20.2",
+    "concurrently": "^8.2.0",
+    "cookie-parser": "^1.4.6",
+    "cors": "^2.8.5",
+    "debug": "^4.3.4",
+    "dotenv": "^16.6.1",
+    "ejs": "^3.1.9",
+    "ethers": "^6.16.0",
+    "express": "^4.18.2",
+    "express-session": "^1.17.3",
+    "http-errors": "^2.0.0",
+    "jsonwebtoken": "^9.0.2",
+    "jwt-decode": "^3.1.2",
+    "moment": "^2.29.4",
+    "mongoose": "^8.21.0",
+    "morgan": "^1.10.0",
+    "nexmo": "^2.9.1",
+    "nodemailer": "^6.9.7",
+    "nodemon": "^3.0.2",
+    "passport": "^0.7.0",
+    "passport-local": "^1.0.0",
+    "pug": "^3.0.2",
+    "validator": "^13.11.0"
+  },
+  "author": "Simran Gupta",
+  "license": "ISC"
+}

@@ -1,32 +1,78 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import axios from 'axios';
 
 export default function Auth() {
-  const [isLogin, setIsLogin] = useState(true);
   const navigate = useNavigate();
+
+  const [isLogin, setIsLogin] = useState(true);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+
   const [formData, setFormData] = useState({
     name: '',
     email: '',
     contactNo: '',
     pinCode: '',
     password: '',
-    role: 'user'
+    role: 'user',
   });
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
-  const handleSubmit = (e) => {
+  const handleSuccess = (data) => {
+    if (data.token) {
+      localStorage.setItem('token', data.token);
+    }
+
+    const role = data.role || data.user?.role || formData.role;
+
+    if (role === 'admin' || role === 'govt') {
+      navigate('/gov-dashboard');
+    } else {
+      navigate('/dashboard');
+    }
+  };
+
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    console.log('Form submitted:', formData);
-    // // Mock routing based on role
-    // if (formData.role === 'gov') {
-    //     navigate('/gov-dashboard');
-    // } else {
-    //     navigate('/dashboard');
-    // }
-    
+    setError('');
+    setLoading(true);
+
+    try {
+      const url = isLogin
+        ? 'http://localhost:8010/login'
+        : 'http://localhost:8010/signup';
+
+      const payload = isLogin
+        ? {
+            email: formData.email,
+            password: formData.password,
+          }
+        : {
+            name: formData.name,
+            email: formData.email,
+            password: formData.password,
+            contactNo: formData.contactNo,
+            pinCode: formData.pinCode,
+            role: formData.role,
+          };
+
+      const res = await axios.post(url, payload);
+      handleSuccess(res.data);
+    } catch (err) {
+      console.error(err);
+      setError(
+        err.response?.data?.message ||
+          err.response?.data?.error ||
+          err.message ||
+          'Request failed'
+      );
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -35,38 +81,73 @@ export default function Auth() {
         <h2 className="text-3xl font-bold text-center mb-6 text-brand-text">
           {isLogin ? 'Welcome Back' : 'Create Account'}
         </h2>
-        
+
+        {error && (
+          <p className="text-red-500 text-center mb-4 font-medium">
+            {error}
+          </p>
+        )}
+
         <form onSubmit={handleSubmit} className="space-y-4">
           {!isLogin && (
             <>
-              <input name="name" placeholder="Full Name" onChange={handleChange} className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-accent focus:border-transparent transition" required />
-              <input name="contactNo" placeholder="Contact Number" onChange={handleChange} className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-accent focus:border-transparent transition" required />
-              <input name="pinCode" placeholder="Pin Code" onChange={handleChange} className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-accent focus:border-transparent transition" required />
+              <input
+                name="name"
+                placeholder="Full Name"
+                onChange={handleChange}
+                required
+                className="w-full p-3 border rounded-lg"
+              />
+              <input
+                name="contactNo"
+                placeholder="Contact Number"
+                onChange={handleChange}
+                required
+                className="w-full p-3 border rounded-lg"
+              />
+              <input
+                name="pinCode"
+                placeholder="Pin Code"
+                onChange={handleChange}
+                required
+                className="w-full p-3 border rounded-lg"
+              />
             </>
           )}
-          
-          <input name="email" type="email" placeholder="Email Address" onChange={handleChange} className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-accent focus:border-transparent transition" required />
-          <input name="password" type="password" placeholder="Password" onChange={handleChange} className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-accent focus:border-transparent transition" required />
-          
-          {/* <div className="flex gap-4 justify-center py-2">
-             <label className="flex items-center gap-2 cursor-pointer">
-                <input type="radio" name="role" value="user" checked={formData.role === 'user'} onChange={handleChange} className="accent-brand-accent w-4 h-4" /> 
-                <span className="font-medium">User</span>
-             </label>
-             <label className="flex items-center gap-2 cursor-pointer">
-                <input type="radio" name="role" value="gov" checked={formData.role === 'gov'} onChange={handleChange} className="accent-brand-accent w-4 h-4" /> 
-                <span className="font-medium">Government</span>
-             </label>
-          </div> */}
 
-          <button type="submit" className="w-full bg-brand-accent text-white py-3 rounded-lg font-bold hover:bg-opacity-90 transition shadow-md">
-            {isLogin ? 'Login' : 'Sign Up'}
+          <input
+            name="email"
+            type="email"
+            placeholder="Email Address"
+            onChange={handleChange}
+            required
+            className="w-full p-3 border rounded-lg"
+          />
+
+          <input
+            name="password"
+            type="password"
+            placeholder="Password"
+            onChange={handleChange}
+            required
+            className="w-full p-3 border rounded-lg"
+          />
+
+          <button
+            type="submit"
+            disabled={loading}
+            className="w-full bg-brand-accent text-white py-3 rounded-lg font-bold disabled:opacity-60"
+          >
+            {loading ? 'Please wait...' : isLogin ? 'Login' : 'Sign Up'}
           </button>
         </form>
 
         <p className="text-center mt-6 text-gray-600">
-          {isLogin ? "Don't have an account? " : "Already have an account? "}
-          <button onClick={() => setIsLogin(!isLogin)} className="text-brand-accent font-bold hover:underline">
+          {isLogin ? "Don't have an account? " : 'Already have an account? '}
+          <button
+            onClick={() => setIsLogin(!isLogin)}
+            className="text-brand-accent font-bold hover:underline"
+          >
             {isLogin ? 'Sign Up' : 'Login'}
           </button>
         </p>
