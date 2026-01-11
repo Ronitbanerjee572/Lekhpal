@@ -381,7 +381,7 @@ export default function UserDashboard() {
                         <MapPin size={40} />
                       </div>
                       <div className="p-4 sm:p-5">
-                        <h3 className="font-bold text-base sm:text-lg text-brand-text break-words">Plot #{land.id} - Khatian: {land.khatian}</h3>
+                        <h3 className="font-bold text-base sm:text-lg text-brand-text wrap-break-word">Plot #{land.id} - Khatian: {land.khatian}</h3>
                         <p className="text-xs sm:text-sm text-gray-600 mb-1">Location: {land.city}, {land.state}</p>
                         <p className="text-xs sm:text-sm text-gray-600 mb-1">Ward: {land.ward}</p>
                         <p className="text-xs sm:text-sm text-gray-600 mb-2">Area: {land.area} sq units</p>
@@ -421,7 +421,7 @@ export default function UserDashboard() {
                           </div>
                           <div className="p-4 sm:p-5">
                             <div className="flex justify-between items-start mb-2 gap-2">
-                              <h3 className="font-bold text-base sm:text-lg text-brand-text break-words">Khatian: {land.khatian}</h3>
+                              <h3 className="font-bold text-base sm:text-lg text-brand-text wrap-break-word">Khatian: {land.khatian}</h3>
                               <span className="bg-green-100 text-green-800 text-xs px-2 py-1 rounded-full font-bold whitespace-nowrap">Verified</span>
                             </div>
                             <p className="text-xs sm:text-sm text-gray-600 mb-1">Location: {land.city}, {land.state}</p>

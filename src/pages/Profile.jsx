@@ -313,7 +313,7 @@ export default function Profile() {
                 {userData.name?.charAt(0).toUpperCase() || 'U'}
               </div>
               <div>
-                <h2 className="text-xl sm:text-2xl font-bold text-brand-text break-words">{userData.name}</h2>
+                <h2 className="text-xl sm:text-2xl font-bold text-brand-text wrap-break-word">{userData.name}</h2>
                 <p className="text-sm sm:text-base text-gray-600 capitalize">{userData.role || 'User'}</p>
               </div>
             </div>
