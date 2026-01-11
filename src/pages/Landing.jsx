@@ -4,33 +4,33 @@ import ThreeScene from '../components/ThreeScene';
 
 export default function Landing() {
   return (
-    <div className="flex h-screen w-full relative overflow-hidden bg-brand-bg">
+    <div className="flex flex-col md:flex-row h-screen w-full relative overflow-hidden bg-brand-bg">
         {/* Navbar / Top Button */}
-        <div className="absolute top-8 left-8 z-10 flex w-[calc(100vw-4rem)] justify-between items-center">
-            <h1 className="text-3xl font-bold text-brand-text">△ <span className="text-brand-accent">Lekhpal</span></h1>
-            <Link to="/auth" className="bg-brand-accent text-white px-6 py-2 rounded-lg font-bold hover:opacity-90 transition shadow-lg">
+        <div className="absolute top-4 sm:top-6 md:top-8 left-4 sm:left-6 md:left-8 z-10 flex w-[calc(100vw-2rem)] sm:w-[calc(100vw-3rem)] md:w-[calc(100vw-4rem)] justify-between items-center">
+            <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-brand-text">△ <span className="text-brand-accent">Lekhpal</span></h1>
+            <Link to="/auth" className="bg-brand-accent text-white px-4 sm:px-6 py-1.5 sm:py-2 rounded-lg font-bold hover:opacity-90 transition shadow-lg text-sm sm:text-base">
                 Get Started
             </Link>
         </div>
 
       {/* Left Side - Text */}
-      <div className="w-1/2 flex flex-col justify-center px-16 z-10">
-        <h1 className="text-6xl font-extrabold text-brand-text mb-6">
+      <div className="w-full md:w-1/2 flex flex-col justify-center px-4 sm:px-8 md:px-16 z-10 pt-20 sm:pt-24 md:pt-0 pb-8 md:pb-0">
+        <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-extrabold text-brand-text mb-4 sm:mb-6">
           Secure Land <br />
           <span className="text-brand-accent">Registry</span> System
         </h1>
-        <p className="text-xl text-gray-600 mb-8 max-w-lg leading-relaxed">
+        <p className="text-base sm:text-lg md:text-xl text-gray-600 mb-6 sm:mb-8 max-w-lg leading-relaxed">
           The future of property management. Blockchain-powered land ownership that is transparent, immutable, and secure.
         </p>
         <div>
-             <Link to="/auth" className="bg-brand-text text-white px-8 py-4 rounded-lg font-bold hover:bg-brand-accent transition shadow-xl text-lg">
+             <Link to="/auth" className="inline-block bg-brand-text text-white px-6 sm:px-8 py-3 sm:py-4 rounded-lg font-bold hover:bg-brand-accent transition shadow-xl text-base sm:text-lg">
                 Get Started
             </Link>
         </div>
       </div>
 
       {/* Right Side - 3D Model */}
-      <div className="w-1/2 h-full bg-brand-bg-alt relative">
+      <div className="w-full md:w-1/2 h-1/2 md:h-full bg-brand-bg-alt relative">
         <ThreeScene />
       </div>
     </div>

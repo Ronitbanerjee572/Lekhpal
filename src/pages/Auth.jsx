@@ -77,9 +77,9 @@ export default function Auth() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-brand-bg-alt p-4">
-      <div className="bg-white p-8 rounded-2xl shadow-xl w-full max-w-md border border-gray-100">
-        <h2 className="text-3xl font-bold text-center mb-6 text-brand-text">
+    <div className="min-h-screen flex items-center justify-center bg-brand-bg-alt p-4 sm:p-6">
+      <div className="bg-white p-6 sm:p-8 rounded-2xl shadow-xl w-full max-w-md border border-gray-100">
+        <h2 className="text-2xl sm:text-3xl font-bold text-center mb-5 sm:mb-6 text-brand-text">
           {isLogin ? 'Welcome Back' : 'Create Account'}
         </h2>
 
@@ -97,21 +97,21 @@ export default function Auth() {
                 placeholder="Full Name"
                 onChange={handleChange}
                 required
-                className="w-full p-3 border rounded-lg"
+                className="w-full p-3 border rounded-lg text-sm sm:text-base"
               />
               <input
                 name="contactNo"
                 placeholder="Contact Number"
                 onChange={handleChange}
                 required
-                className="w-full p-3 border rounded-lg"
+                className="w-full p-3 border rounded-lg text-sm sm:text-base"
               />
               <input
                 name="pinCode"
                 placeholder="Pin Code"
                 onChange={handleChange}
                 required
-                className="w-full p-3 border rounded-lg"
+                className="w-full p-3 border rounded-lg text-sm sm:text-base"
               />
             </>
           )}
@@ -122,7 +122,7 @@ export default function Auth() {
             placeholder="Email Address"
             onChange={handleChange}
             required
-            className="w-full p-3 border rounded-lg"
+            className="w-full p-3 border rounded-lg text-sm sm:text-base"
           />
 
           <input
@@ -131,19 +131,19 @@ export default function Auth() {
             placeholder="Password"
             onChange={handleChange}
             required
-            className="w-full p-3 border rounded-lg"
+            className="w-full p-3 border rounded-lg text-sm sm:text-base"
           />
 
           <button
             type="submit"
             disabled={loading}
-            className="w-full bg-brand-accent text-white py-3 rounded-lg font-bold disabled:opacity-60"
+            className="w-full bg-brand-accent text-white py-3 rounded-lg font-bold disabled:opacity-60 text-sm sm:text-base"
           >
             {loading ? 'Please wait...' : isLogin ? 'Login' : 'Sign Up'}
           </button>
         </form>
 
-        <p className="text-center mt-6 text-gray-600">
+        <p className="text-center mt-5 sm:mt-6 text-gray-600 text-sm sm:text-base">
           {isLogin ? "Don't have an account? " : 'Already have an account? '}
           <button
             onClick={() => setIsLogin(!isLogin)}

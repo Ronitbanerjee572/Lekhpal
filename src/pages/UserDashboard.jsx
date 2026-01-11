@@ -1,10 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import { Globe, Search, Wallet, MapPin, Grid, LayoutDashboard, AlertCircle, CheckCircle } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { Globe, Search, Wallet, MapPin, Grid, LayoutDashboard, AlertCircle, CheckCircle, User, LogOut } from 'lucide-react';
 import GlobeView from '../components/GlobeView';
 import { ethers } from 'ethers';
 import { LAND_REGISTRY_ADDRESS, LAND_REGISTRY_ABI, ESCROW_ADDRESS, ESCROW_ABI, RPC_URL } from '../config/contractConfig';
+import axios from 'axios';
 
 export default function UserDashboard() {
+  const navigate = useNavigate();
   const [viewMode, setViewMode] = useState('grid'); // 'grid' or 'map'
   const [account, setAccount] = useState(null);
   const [allLands, setAllLands] = useState([]);
@@ -17,6 +20,12 @@ export default function UserDashboard() {
   const [escrowContract, setEscrowContract] = useState(null);
   const [buyingLandId, setBuyingLandId] = useState(null);
   const [buyingLoading, setBuyingLoading] = useState(false);
+  const [userPinCode, setUserPinCode] = useState(null);
+
+  // Fetch user pinCode on component mount
+  useEffect(() => {
+    fetchUserPinCode();
+  }, []);
 
   // Initialize contract with provider (no wallet needed for reading)
   useEffect(() => {
@@ -36,6 +45,27 @@ export default function UserDashboard() {
       loadMyLands();
     }
   }, [contract, account]);
+
+  const fetchUserPinCode = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) return;
+
+      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8010';
+      const response = await axios.get(`${apiUrl}/me`, {
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      });
+
+      if (response.data && response.data.pinCode) {
+        setUserPinCode(response.data.pinCode);
+      }
+    } catch (err) {
+      console.error('Error fetching user pinCode:', err);
+      // Silently fail - will use default pinCode
+    }
+  };
 
   const initContract = async () => {
     try {
@@ -184,6 +214,11 @@ export default function UserDashboard() {
     }
   };
 
+  const handleLogout = () => {
+    localStorage.removeItem('token');
+    navigate('/auth');
+  };
+
   const handleBuyLand = async (land) => {
     if (!window.ethereum) {
       setError("MetaMask not detected! Please install MetaMask to purchase.");
@@ -248,29 +283,38 @@ export default function UserDashboard() {
   };
 
   return (
-    <div className="min-h-screen bg-brand-bg p-8">
-      <header className="flex flex-col md:flex-row justify-between items-center mb-8 bg-white p-4 rounded-xl shadow-sm gap-4">
-        <h1 className="text-3xl font-bold text-brand-text">△ <span className="text-brand-accent">Lekhpal</span></h1>
-        <div className="flex gap-4">
+    <div className="min-h-screen bg-brand-bg p-4 sm:p-6 md:p-8">
+      <header className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 md:mb-8 bg-white p-3 sm:p-4 rounded-xl shadow-sm gap-3 sm:gap-4">
+        <h1 className="text-2xl sm:text-3xl font-bold text-brand-text">△ <span className="text-brand-accent">Lekhpal</span></h1>
+        <div className="flex flex-wrap gap-2 sm:gap-3 w-full sm:w-auto">
+             <button 
+                onClick={() => navigate('/profile')}
+                className="flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700 transition shadow-md text-sm sm:text-base"
+             >
+                <User size={16} className="sm:w-[18px] sm:h-[18px]" /> <span className="hidden sm:inline">Profile</span><span className="sm:hidden">Profile</span>
+             </button>
              <button 
                 onClick={() => setViewMode(viewMode === 'map' ? 'grid' : 'map')}
-                className={`flex items-center gap-2 px-4 py-2 rounded-lg transition border ${viewMode === 'map' ? 'bg-brand-accent text-white border-brand-accent' : 'bg-white text-brand-text border-gray-300 hover:bg-gray-50'}`}
+                className={`flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 rounded-lg transition border text-sm sm:text-base ${viewMode === 'map' ? 'bg-brand-accent text-white border-brand-accent' : 'bg-white text-brand-text border-gray-300 hover:bg-gray-50'}`}
              >
-                {viewMode === 'map' ? <><LayoutDashboard size={18} /> Grid View</> : <><Globe size={18} /> Map View</>}
+                {viewMode === 'map' ? <><LayoutDashboard size={16} className="sm:w-[18px] sm:h-[18px]" /> <span className="hidden sm:inline">Grid View</span><span className="sm:hidden">Grid</span></> : <><Globe size={16} className="sm:w-[18px] sm:h-[18px]" /> <span className="hidden sm:inline">Map View</span><span className="sm:hidden">Map</span></>}
              </button>
-             <button onClick={handleConnectWallet} className="flex items-center gap-2 bg-brand-text-dark text-white px-4 py-2 rounded-lg hover:bg-gray-800 transition shadow-md">
-               <Wallet size={18} /> {account ? `${account.slice(0,6)}...${account.slice(-4)}` : 'Connect Wallet'}
+             <button onClick={handleConnectWallet} className="flex items-center gap-1.5 sm:gap-2 bg-brand-text-dark text-white px-3 sm:px-4 py-2 rounded-lg hover:bg-gray-800 transition shadow-md text-sm sm:text-base">
+               <Wallet size={16} className="sm:w-[18px] sm:h-[18px]" /> <span className="hidden sm:inline">{account ? `${account.slice(0,6)}...${account.slice(-4)}` : 'Connect Wallet'}</span><span className="sm:hidden">{account ? `${account.slice(0,4)}...` : 'Wallet'}</span>
+             </button>
+             <button onClick={handleLogout} className="flex items-center gap-1.5 sm:gap-2 bg-red-600 text-white px-3 sm:px-4 py-2 rounded-lg hover:bg-red-700 transition shadow-md text-sm sm:text-base">
+               <LogOut size={16} className="sm:w-[18px] sm:h-[18px]" /> <span className="hidden sm:inline">Logout</span><span className="sm:hidden">Out</span>
              </button>
         </div>
       </header>
 
       {/* Search Section */}
-      <div className="bg-white p-6 rounded-xl shadow-sm mb-8 border border-gray-100">
-        <h2 className="text-xl font-bold mb-4 flex items-center gap-2"><Search size={20}/> Search Land Registry</h2>
-        <div className="flex gap-4 flex-col md:flex-row">
+      <div className="bg-white p-4 sm:p-6 rounded-xl shadow-sm mb-6 md:mb-8 border border-gray-100">
+        <h2 className="text-lg sm:text-xl font-bold mb-3 sm:mb-4 flex items-center gap-2"><Search size={18} className="sm:w-5 sm:h-5"/> <span>Search Land Registry</span></h2>
+        <div className="flex gap-3 sm:gap-4 flex-col sm:flex-row">
             <input 
               placeholder="Enter Khatian No." 
-              className="flex-1 p-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-accent" 
+              className="flex-1 p-2.5 sm:p-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-accent text-sm sm:text-base" 
               value={searchKhatian}
               onChange={(e) => setSearchKhatian(e.target.value)}
               onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
@@ -278,14 +322,14 @@ export default function UserDashboard() {
             <button 
               onClick={handleSearch}
               disabled={loading || !contract}
-              className="bg-brand-text text-white px-8 py-3 rounded-lg font-bold hover:bg-brand-accent transition disabled:opacity-50 disabled:cursor-not-allowed"
+              className="bg-brand-text text-white px-6 sm:px-8 py-2.5 sm:py-3 rounded-lg font-bold hover:bg-brand-accent transition disabled:opacity-50 disabled:cursor-not-allowed text-sm sm:text-base"
             >
                 {loading ? 'Searching...' : 'Search'}
             </button>
             <button 
               onClick={loadAllLands}
               disabled={loading || !contract}
-              className="bg-gray-600 text-white px-8 py-3 rounded-lg font-bold hover:bg-gray-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
+              className="bg-gray-600 text-white px-6 sm:px-8 py-2.5 sm:py-3 rounded-lg font-bold hover:bg-gray-700 transition disabled:opacity-50 disabled:cursor-not-allowed text-sm sm:text-base"
             >
                 Show All
             </button>
@@ -317,34 +361,34 @@ export default function UserDashboard() {
       )}
 
       {viewMode === 'map' ? (
-          <div className="mb-8 animate-in fade-in zoom-in duration-300">
-            <h2 className="text-2xl font-bold mb-4 text-brand-text">Global Land Map</h2>
-            { <GlobeView pinCode = {700050}/> }
+          <div className="mb-6 md:mb-8 animate-in fade-in zoom-in duration-300">
+            <h2 className="text-xl sm:text-2xl font-bold mb-3 sm:mb-4 text-brand-text">Global Land Map</h2>
+             <GlobeView pinCode={userPinCode || 700050} /> 
           </div>
       ) : (
         <>
             {/* Owned Lands Section */}
             {account && myLands.length > 0 && (
-              <div className="mb-10">
-                <h2 className="text-2xl font-bold mb-6 text-brand-text border-b pb-2 border-gray-200">
+              <div className="mb-8 sm:mb-10">
+                <h2 className="text-xl sm:text-2xl font-bold mb-4 sm:mb-6 text-brand-text border-b pb-2 border-gray-200">
                   My Owned Lands ({myLands.length})
                 </h2>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 md:gap-8">
                   {myLands.map((land) => (
                     <div key={land.id} className="bg-white rounded-xl shadow-md overflow-hidden hover:shadow-xl transition duration-300 border border-green-200 relative">
                       <div className="absolute top-0 right-0 bg-green-500 text-white text-xs font-bold px-3 py-1 rounded-bl-lg z-10">OWNED</div>
                       <div className="h-40 bg-green-50 flex items-center justify-center text-green-300">
                         <MapPin size={40} />
                       </div>
-                      <div className="p-5">
-                        <h3 className="font-bold text-lg text-brand-text">Plot #{land.id} - Khatian: {land.khatian}</h3>
-                        <p className="text-sm text-gray-600 mb-1">Location: {land.city}, {land.state}</p>
-                        <p className="text-sm text-gray-600 mb-1">Ward: {land.ward}</p>
-                        <p className="text-sm text-gray-600 mb-2">Area: {land.area} sq units</p>
-                        <p className="text-sm text-gray-600 mb-2">Deed: {land.deedType}</p>
+                      <div className="p-4 sm:p-5">
+                        <h3 className="font-bold text-base sm:text-lg text-brand-text break-words">Plot #{land.id} - Khatian: {land.khatian}</h3>
+                        <p className="text-xs sm:text-sm text-gray-600 mb-1">Location: {land.city}, {land.state}</p>
+                        <p className="text-xs sm:text-sm text-gray-600 mb-1">Ward: {land.ward}</p>
+                        <p className="text-xs sm:text-sm text-gray-600 mb-2">Area: {land.area} sq units</p>
+                        <p className="text-xs sm:text-sm text-gray-600 mb-2">Deed: {land.deedType}</p>
                         <p className="text-xs text-gray-500">Registered: {land.registeredAt}</p>
                         <div className="mt-3 pt-3 border-t border-gray-100">
-                          <p className="text-sm text-gray-600">Value: <span className="font-bold text-brand-accent">{land.value} ETH</span></p>
+                          <p className="text-xs sm:text-sm text-gray-600">Value: <span className="font-bold text-brand-accent">{land.value} ETH</span></p>
                         </div>
                       </div>
                     </div>
@@ -355,17 +399,17 @@ export default function UserDashboard() {
 
             {/* All Lands / Marketplace Section */}
             <div>
-                <h2 className="text-2xl font-bold mb-6 text-brand-text border-b pb-2 border-gray-200">
+                <h2 className="text-xl sm:text-2xl font-bold mb-4 sm:mb-6 text-brand-text border-b pb-2 border-gray-200">
                   {searchKhatian ? 'Search Results' : 'All Registered Lands'} ({allLands.length})
                 </h2>
                 {allLands.length === 0 && !loading ? (
-                  <div className="text-center py-12 bg-white rounded-xl shadow-sm">
-                    <MapPin size={48} className="mx-auto text-gray-300 mb-4" />
-                    <p className="text-gray-600 text-lg">No lands found</p>
-                    <p className="text-gray-500 text-sm mt-2">Try adjusting your search or check back later</p>
+                  <div className="text-center py-8 sm:py-12 bg-white rounded-xl shadow-sm px-4">
+                    <MapPin size={40} className="sm:w-12 sm:h-12 mx-auto text-gray-300 mb-3 sm:mb-4" />
+                    <p className="text-gray-600 text-base sm:text-lg">No lands found</p>
+                    <p className="text-gray-500 text-xs sm:text-sm mt-2">Try adjusting your search or check back later</p>
                   </div>
                 ) : (
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 md:gap-8">
                     {allLands.map((land) => {
                       const isOwned = account && land.owner.toLowerCase() === account.toLowerCase();
                       return (
@@ -375,26 +419,26 @@ export default function UserDashboard() {
                             <MapPin size={40} className={`${isOwned ? 'text-green-300' : 'text-brand-accent'} opacity-50`} />
                             <span className="absolute bottom-2 right-2 bg-black bg-opacity-50 text-white text-xs px-2 py-1 rounded">ID: {land.id}</span>
                           </div>
-                          <div className="p-5">
-                            <div className="flex justify-between items-start mb-2">
-                              <h3 className="font-bold text-lg text-brand-text">Khatian: {land.khatian}</h3>
-                              <span className="bg-green-100 text-green-800 text-xs px-2 py-1 rounded-full font-bold">Verified</span>
+                          <div className="p-4 sm:p-5">
+                            <div className="flex justify-between items-start mb-2 gap-2">
+                              <h3 className="font-bold text-base sm:text-lg text-brand-text break-words">Khatian: {land.khatian}</h3>
+                              <span className="bg-green-100 text-green-800 text-xs px-2 py-1 rounded-full font-bold whitespace-nowrap">Verified</span>
                             </div>
-                            <p className="text-sm text-gray-600 mb-1">Location: {land.city}, {land.state}</p>
-                            <p className="text-sm text-gray-600 mb-1">Ward: {land.ward}</p>
-                            <p className="text-sm text-gray-600 mb-2">Area: {land.area} sq units</p>
-                            <p className="text-sm text-gray-600 mb-2">Deed Type: {land.deedType}</p>
+                            <p className="text-xs sm:text-sm text-gray-600 mb-1">Location: {land.city}, {land.state}</p>
+                            <p className="text-xs sm:text-sm text-gray-600 mb-1">Ward: {land.ward}</p>
+                            <p className="text-xs sm:text-sm text-gray-600 mb-2">Area: {land.area} sq units</p>
+                            <p className="text-xs sm:text-sm text-gray-600 mb-2">Deed Type: {land.deedType}</p>
                             <p className="text-xs text-gray-500 mb-3">Registered: {land.registeredAt}</p>
                             
-                            <div className="border-t border-gray-100 pt-4">
-                              <div className="flex justify-between items-center mb-3">
+                            <div className="border-t border-gray-100 pt-3 sm:pt-4">
+                              <div className="flex justify-between items-center mb-3 flex-col sm:flex-row gap-2 sm:gap-0">
                                 <div>
                                   <p className="text-xs text-gray-500">Gov. Value</p>
-                                  <span className="font-bold text-brand-accent text-xl">{land.value} ETH</span>
+                                  <span className="font-bold text-brand-accent text-lg sm:text-xl">{land.value} ETH</span>
                                 </div>
-                                <div className="text-right">
+                                <div className="text-right sm:text-right">
                                   <p className="text-xs text-gray-500 mb-1">Owner</p>
-                                  <p className="text-xs font-mono text-gray-700">
+                                  <p className="text-xs font-mono text-gray-700 break-all">
                                     {land.owner.slice(0, 6)}...{land.owner.slice(-4)}
                                   </p>
                                 </div>

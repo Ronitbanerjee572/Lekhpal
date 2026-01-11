@@ -4,6 +4,7 @@ import Landing from './pages/Landing';
 import Auth from './pages/Auth';
 import UserDashboard from './pages/UserDashboard';
 import GovDashboard from './pages/GovDashboard';
+import Profile from './pages/Profile';
 
 function App() {
   return (
@@ -13,6 +14,7 @@ function App() {
         <Route path="/auth" element={<Auth />} />
         <Route path="/dashboard" element={<UserDashboard />} />
         <Route path="/gov-dashboard" element={<GovDashboard />} />
+        <Route path="/profile" element={<Profile />} />
       </Routes>
     </BrowserRouter>
   );

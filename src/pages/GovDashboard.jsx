@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { FileCheck, DollarSign, PenTool, Activity, Wallet, AlertCircle, CheckCircle, LogOut } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { FileCheck, DollarSign, PenTool, Activity, Wallet, AlertCircle, CheckCircle, LogOut, User } from 'lucide-react';
 import { ethers } from 'ethers';
 import { LAND_REGISTRY_ADDRESS, LAND_REGISTRY_ABI, ESCROW_ADDRESS, ESCROW_ABI, RPC_URL } from '../config/contractConfig';
 
 export default function GovDashboard() {
+  const navigate = useNavigate();
   const [account, setAccount] = useState(null);
   const [contract, setContract] = useState(null);
   const [escrowContract, setEscrowContract] = useState(null);
@@ -138,6 +140,11 @@ export default function GovDashboard() {
     setIsAdmin(false);
     setError(null);
     setSuccess(null);
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem('token');
+    navigate('/auth');
   };
 
   const handleRegisterLand = async (e) => {
@@ -311,35 +318,49 @@ export default function GovDashboard() {
   }, [escrowContract]);
 
   return (
-    <div className="min-h-screen bg-brand-bg p-8">
-      <header className="mb-8 flex justify-between items-center">
+    <div className="min-h-screen bg-brand-bg p-4 sm:p-6 md:p-8">
+      <header className="mb-6 sm:mb-8 flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
           <div>
-            <h1 className="text-3xl font-bold text-brand-text">△ <span className="text-brand-accent">Lekhpal Admin</span></h1>
-            <p className="text-gray-600">Manage land registrations, valuations, and deal approvals.</p>
+            <h1 className="text-2xl sm:text-3xl font-bold text-brand-text">△ <span className="text-brand-accent">Lekhpal Admin</span></h1>
+            <p className="text-sm sm:text-base text-gray-600 mt-1">Manage land registrations, valuations, and deal approvals.</p>
           </div>
           
-          {account ? (
-            <div className="flex items-center gap-4">
-              <div className="bg-white p-3 rounded-lg shadow-sm">
-                <p className="text-xs text-gray-600 mb-1">Connected Account</p>
-                <p className="font-bold text-brand-accent">{account.slice(0, 6)}...{account.slice(-4)}</p>
-                {isAdmin && <p className="text-xs text-green-600 font-medium">✓ Admin</p>}
-              </div>
-              <button
-                onClick={handleDisconnect}
-                className="flex items-center gap-2 bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition"
-              >
-                <LogOut size={16} /> Disconnect
-              </button>
-            </div>
-          ) : (
+          <div className="flex flex-wrap items-center gap-2 sm:gap-3 md:gap-4 w-full lg:w-auto">
             <button
-              onClick={handleConnectWallet}
-              className="flex items-center gap-2 bg-brand-text text-white px-6 py-3 rounded-lg hover:bg-brand-accent transition font-bold"
+              onClick={() => navigate('/profile')}
+              className="flex items-center gap-1.5 sm:gap-2 bg-blue-600 text-white px-3 sm:px-4 py-2 rounded-lg hover:bg-blue-700 transition text-sm sm:text-base"
             >
-              <Wallet size={20} /> Connect Wallet
+              <User size={16} className="sm:w-[18px] sm:h-[18px]" /> <span className="hidden sm:inline">Profile</span><span className="sm:hidden">Profile</span>
             </button>
-          )}
+            {account ? (
+              <>
+                <div className="bg-white p-2 sm:p-3 rounded-lg shadow-sm">
+                  <p className="text-xs text-gray-600 mb-1">Connected Account</p>
+                  <p className="font-bold text-brand-accent text-xs sm:text-sm break-all">{account.slice(0, 6)}...{account.slice(-4)}</p>
+                  {isAdmin && <p className="text-xs text-green-600 font-medium">✓ Admin</p>}
+                </div>
+                <button
+                  onClick={handleDisconnect}
+                  className="flex items-center gap-1.5 sm:gap-2 bg-gray-600 text-white px-3 sm:px-4 py-2 rounded-lg hover:bg-gray-700 transition text-sm sm:text-base"
+                >
+                  <LogOut size={14} className="sm:w-4 sm:h-4" /> <span className="hidden sm:inline">Disconnect Wallet</span><span className="sm:hidden">Disconnect</span>
+                </button>
+              </>
+            ) : (
+              <button
+                onClick={handleConnectWallet}
+                className="flex items-center gap-1.5 sm:gap-2 bg-brand-text text-white px-4 sm:px-6 py-2 sm:py-3 rounded-lg hover:bg-brand-accent transition font-bold text-sm sm:text-base"
+              >
+                <Wallet size={18} className="sm:w-5 sm:h-5" /> <span className="hidden sm:inline">Connect Wallet</span><span className="sm:hidden">Connect</span>
+              </button>
+            )}
+            <button
+              onClick={handleLogout}
+              className="flex items-center gap-1.5 sm:gap-2 bg-red-600 text-white px-3 sm:px-4 py-2 rounded-lg hover:bg-red-700 transition text-sm sm:text-base"
+            >
+              <LogOut size={16} className="sm:w-[18px] sm:h-[18px]" /> <span className="hidden sm:inline">Logout</span><span className="sm:hidden">Out</span>
+            </button>
+          </div>
       </header>
 
       {/* Messages */}
@@ -365,27 +386,27 @@ export default function GovDashboard() {
       )}
 
       {!account ? (
-        <div className="bg-white p-12 rounded-xl shadow-md text-center">
-          <Wallet size={48} className="mx-auto text-gray-400 mb-4" />
-          <h2 className="text-2xl font-bold text-brand-text mb-2">Connect Your Wallet</h2>
-          <p className="text-gray-600 mb-6">Please connect your MetaMask wallet to access admin functions.</p>
+        <div className="bg-white p-6 sm:p-8 md:p-12 rounded-xl shadow-md text-center">
+          <Wallet size={40} className="sm:w-12 sm:h-12 mx-auto text-gray-400 mb-3 sm:mb-4" />
+          <h2 className="text-xl sm:text-2xl font-bold text-brand-text mb-2">Connect Your Wallet</h2>
+          <p className="text-sm sm:text-base text-gray-600 mb-4 sm:mb-6 px-4">Please connect your MetaMask wallet to access admin functions.</p>
           <button
             onClick={handleConnectWallet}
-            className="inline-flex items-center gap-2 bg-brand-text text-white px-8 py-3 rounded-lg hover:bg-brand-accent transition font-bold"
+            className="inline-flex items-center gap-2 bg-brand-text text-white px-6 sm:px-8 py-2.5 sm:py-3 rounded-lg hover:bg-brand-accent transition font-bold text-sm sm:text-base"
           >
-            <Wallet size={20} /> Connect MetaMask
+            <Wallet size={18} className="sm:w-5 sm:h-5" /> Connect MetaMask
           </button>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-3 grid-rows-2 gap-8">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6 md:gap-8">
         {/* Top row: 1 - Set Valuation, 2 - Register Land, 3 - Approve Escrow (top) */}
           {/* Set Valuation */}
-          <div className="bg-white p-6 rounded-xl shadow-md border border-gray-100 md:row-start-1 md:col-start-1">
-              <div className="flex items-center gap-3 mb-6">
-                  <div className="p-3 bg-blue-100 rounded-lg text-blue-600">
-                      <DollarSign size={24} />
+          <div className="bg-white p-4 sm:p-6 rounded-xl shadow-md border border-gray-100">
+              <div className="flex items-center gap-2 sm:gap-3 mb-4 sm:mb-6">
+                  <div className="p-2 sm:p-3 bg-blue-100 rounded-lg text-blue-600">
+                      <DollarSign size={20} className="sm:w-6 sm:h-6" />
                   </div>
-                  <h2 className="text-xl font-bold text-brand-text">Set Valuation</h2>
+                  <h2 className="text-lg sm:text-xl font-bold text-brand-text">Set Valuation</h2>
               </div>
               <form onSubmit={handleSetValuation} className="space-y-4">
                   <div>
@@ -421,12 +442,12 @@ export default function GovDashboard() {
           </div>
 
           {/* Register Land */}
-          <div className="bg-white p-6 rounded-xl shadow-md border border-gray-100">
-              <div className="flex items-center gap-3 mb-6">
-                  <div className="p-3 bg-green-100 rounded-lg text-green-600">
-                      <PenTool size={24} />
+          <div className="bg-white p-4 sm:p-6 rounded-xl shadow-md border border-gray-100">
+              <div className="flex items-center gap-2 sm:gap-3 mb-4 sm:mb-6">
+                  <div className="p-2 sm:p-3 bg-green-100 rounded-lg text-green-600">
+                      <PenTool size={20} className="sm:w-6 sm:h-6" />
                   </div>
-                  <h2 className="text-xl font-bold text-brand-text">Register New Land</h2>
+                  <h2 className="text-lg sm:text-xl font-bold text-brand-text">Register New Land</h2>
               </div>
               <form onSubmit={handleRegisterLand} className="space-y-4">
                   <div>
@@ -451,13 +472,13 @@ export default function GovDashboard() {
                         disabled={loading || !isAdmin}
                       />
                   </div>
-                  <div className="grid grid-cols-2 gap-2">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                       <div>
                         <label className="text-sm font-medium text-gray-700 block mb-1">State</label>
                         <input 
                           type="text"
                           placeholder="State" 
-                          className="w-full p-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-accent"
+                          className="w-full p-2.5 sm:p-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-accent text-sm sm:text-base"
                           value={registerForm.state}
                           onChange={(e) => setRegisterForm({...registerForm, state: e.target.value})}
                           disabled={loading || !isAdmin}
@@ -468,14 +489,14 @@ export default function GovDashboard() {
                         <input 
                           type="text"
                           placeholder="City" 
-                          className="w-full p-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-accent"
+                          className="w-full p-2.5 sm:p-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-accent text-sm sm:text-base"
                           value={registerForm.city}
                           onChange={(e) => setRegisterForm({...registerForm, city: e.target.value})}
                           disabled={loading || !isAdmin}
                         />
                       </div>
                   </div>
-                  <div className="grid grid-cols-2 gap-2">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                       <div>
                         <label className="text-sm font-medium text-gray-700 block mb-1">Ward</label>
                         <input 
@@ -521,12 +542,12 @@ export default function GovDashboard() {
           </div>
 
           {/* Pending Approvals */}
-          <div className="bg-white p-6 rounded-xl shadow-md border border-gray-100 md:col-start-3 md:row-span-2">
-              <div className="flex items-center gap-3 mb-6">
-                  <div className="p-3 bg-purple-100 rounded-lg text-purple-600">
-                      <FileCheck size={24} />
+          <div className="bg-white p-4 sm:p-6 rounded-xl shadow-md border border-gray-100 lg:col-start-3 lg:row-span-2">
+              <div className="flex items-center gap-2 sm:gap-3 mb-4 sm:mb-6">
+                  <div className="p-2 sm:p-3 bg-purple-100 rounded-lg text-purple-600">
+                      <FileCheck size={20} className="sm:w-6 sm:h-6" />
                   </div>
-                  <h2 className="text-xl font-bold text-brand-text">Pending Approvals ({pendingDeals.length})</h2>
+                  <h2 className="text-lg sm:text-xl font-bold text-brand-text">Pending Approvals ({pendingDeals.length})</h2>
               </div>
               <div className="space-y-4 overflow-y-auto pr-2 custom-scrollbar max-h-96">
                   {pendingDeals.length === 0 ? (
@@ -555,25 +576,25 @@ export default function GovDashboard() {
           </div>
 
           {/* Recent Activity */}
-          <div className="mt-0 bg-white p-6 rounded-xl shadow-md border border-gray-100 md:col-span-2 md:row-start-2">
-             <h2 className="text-xl font-bold mb-4 flex items-center gap-2"><Activity size={20}/> Recent System Activity</h2>
-             <div className="overflow-x-auto">
-                 <table className="w-full text-left border-collapse">
+          <div className="bg-white p-4 sm:p-6 rounded-xl shadow-md border border-gray-100 lg:col-span-2">
+             <h2 className="text-lg sm:text-xl font-bold mb-3 sm:mb-4 flex items-center gap-2"><Activity size={18} className="sm:w-5 sm:h-5"/> Recent System Activity</h2>
+             <div className="overflow-x-auto -mx-4 sm:mx-0">
+                 <table className="w-full text-left border-collapse min-w-[500px] sm:min-w-0">
                      <thead>
-                         <tr className="border-b border-gray-200 text-gray-500 text-sm">
-                             <th className="py-3 font-medium">Activity</th>
-                             <th className="py-3 font-medium">User</th>
-                             <th className="py-3 font-medium">Time</th>
-                             <th className="py-3 font-medium">Status</th>
+                         <tr className="border-b border-gray-200 text-gray-500 text-xs sm:text-sm">
+                             <th className="py-2 sm:py-3 px-2 sm:px-0 font-medium">Activity</th>
+                             <th className="py-2 sm:py-3 px-2 sm:px-0 font-medium">User</th>
+                             <th className="py-2 sm:py-3 px-2 sm:px-0 font-medium">Time</th>
+                             <th className="py-2 sm:py-3 px-2 sm:px-0 font-medium">Status</th>
                          </tr>
                      </thead>
                      <tbody>
                          {[1,2,3].map(i => (
                              <tr key={i} className="border-b border-gray-100 hover:bg-gray-50">
-                                 <td className="py-3">New Land Registration</td>
-                                 <td className="py-3">Officer Arghya</td>
-                                 <td className="py-3">1{i} mins ago</td>
-                                 <td className="py-3"><span className="text-green-600 text-sm font-medium">Completed</span></td>
+                                 <td className="py-2 sm:py-3 px-2 sm:px-0 text-xs sm:text-sm">New Land Registration</td>
+                                 <td className="py-2 sm:py-3 px-2 sm:px-0 text-xs sm:text-sm">Officer Arghya</td>
+                                 <td className="py-2 sm:py-3 px-2 sm:px-0 text-xs sm:text-sm">1{i} mins ago</td>
+                                 <td className="py-2 sm:py-3 px-2 sm:px-0"><span className="text-green-600 text-xs sm:text-sm font-medium">Completed</span></td>
                              </tr>
                          ))}
                      </tbody>

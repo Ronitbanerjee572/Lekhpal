@@ -111,23 +111,90 @@ function getCurrentUser(req, res) {
 
 async function updateUserProfile(req, res) {
     const userId = req.user._id;
-    const { name, contactNo, email, role } = req.body;
+    const { name, contactNo, email, role, pinCode } = req.body;
 
     try {
-        const formattedContact = `+91-${contactNo}`;
-        const updateUser = await User.findByIdAndUpdate(userId, {
-            name,
-            contactNo: formattedContact,
-            email,
-            role
-        }, { new: true, runValidators: true });
+        console.log('Update request body:', { name, contactNo, email, role, pinCode });
+        
+        const updateData = {};
+        
+        // Update fields if they are provided (even if empty string, we check for undefined)
+        if (name !== undefined && name.trim() !== '') updateData.name = name.trim();
+        if (email !== undefined && email.trim() !== '') updateData.email = email.trim();
+        if (contactNo !== undefined && contactNo.trim() !== '') {
+            // Remove +91- prefix if present, then add it back
+            const cleanContact = contactNo.replace(/^\+91-?/, '').trim();
+            updateData.contactNo = `+91-${cleanContact}`;
+        }
+        if (role !== undefined) updateData.role = role;
+        // Always update pinCode if provided
+        if (pinCode !== undefined) {
+            const trimmedPinCode = String(pinCode).trim();
+            // Validate pinCode is 6 digits
+            if (trimmedPinCode.length === 6 && /^\d{6}$/.test(trimmedPinCode)) {
+                updateData.pinCode = trimmedPinCode;
+                console.log('PinCode will be updated to:', trimmedPinCode);
+            } else if (trimmedPinCode === '') {
+                // Allow empty string but warn
+                console.warn('Empty pinCode provided, skipping update');
+            } else {
+                return res.status(400).json({ 
+                    message: 'Pin code must be exactly 6 digits',
+                    error: `Invalid pin code: "${trimmedPinCode}" (length: ${trimmedPinCode.length})`
+                });
+            }
+        } else {
+            console.log('PinCode not provided in request body');
+        }
+        
+        console.log('Update data to be saved:', updateData);
 
-        if (!updateUser)
+        // Check if there's anything to update
+        if (Object.keys(updateData).length === 0) {
+            return res.status(400).json({ message: 'No fields to update' });
+        }
+
+        const updateUser = await User.findByIdAndUpdate(
+            userId, 
+            updateData, 
+            { new: true, runValidators: true }
+        );
+
+        if (!updateUser) {
             return res.status(404).json({ message: 'User not found' });
+        }
 
-        res.json(updateUser);
+        console.log('Updated user pinCode:', updateUser.pinCode);
+        console.log('Updated user data:', {
+            name: updateUser.name,
+            email: updateUser.email,
+            contactNo: updateUser.contactNo,
+            pinCode: updateUser.pinCode,
+            role: updateUser.role
+        });
+
+        res.status(200).json({
+            _id: updateUser._id,
+            name: updateUser.name,
+            contactNo: updateUser.contactNo,
+            email: updateUser.email,
+            pinCode: updateUser.pinCode,
+            role: updateUser.role,
+            message: 'Profile updated successfully'
+        });
     } catch (err) {
-        res.status(500).json({ message: 'Server error' , details: err});
+        console.error('Update profile error:', err);
+        // Handle validation errors
+        if (err.name === 'ValidationError') {
+            return res.status(400).json({ 
+                message: 'Validation error', 
+                error: Object.values(err.errors).map(e => e.message).join(', ')
+            });
+        }
+        res.status(500).json({ 
+            message: 'Server error', 
+            error: err.message 
+        });
     }
 
 }
