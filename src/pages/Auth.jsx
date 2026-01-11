@@ -42,9 +42,10 @@ export default function Auth() {
     setLoading(true);
 
     try {
+      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8010';
       const url = isLogin
-        ? 'http://localhost:8010/login'
-        : 'http://localhost:8010/signup';
+        ? `${apiUrl}/login`
+        : `${apiUrl}/signup`;
 
       const payload = isLogin
         ? {
