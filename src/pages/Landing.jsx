@@ -1,8 +1,16 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import ThreeScene from '../components/ThreeScene';
+import axios from 'axios';
 
 export default function Landing() {
+  useEffect(() => {
+    // Warm up the backend with a health check request
+    axios.get('/api/health')
+      .then(() => console.log('Backend warmed up successfully'))
+      .catch(error => console.log('Warm-up request failed:', error.message));
+  }, []);
+
   return (
     <div className="flex flex-col md:flex-row h-screen w-full relative overflow-hidden bg-brand-bg">
         {/* Navbar / Top Button */}

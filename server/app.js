@@ -49,6 +49,15 @@ var port = process.env.PORT || 3001
 
 app.use("/", routes);
 
+// Health check endpoint
+app.get('/api/health', (req, res) => {
+  res.status(200).json({
+    status: 'ok',
+    message: 'Server is healthy',
+    timestamp: new Date().toISOString()
+  });
+});
+
 app.get("/",(req, res)=>{
   res.send("Hello from server.");
 });
