@@ -309,7 +309,7 @@ export default function Profile() {
         <div className="bg-white rounded-xl shadow-md p-4 sm:p-6 md:p-8 mb-6">
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-start mb-6 gap-4">
             <div className="flex items-center gap-3 sm:gap-4">
-              <div className="w-16 h-16 sm:w-20 sm:h-20 bg-brand-accent rounded-full flex items-center justify-center text-white text-2xl sm:text-3xl font-bold flex-shrink-0">
+              <div className="w-16 h-16 sm:w-20 sm:h-20 bg-brand-accent rounded-full flex items-center justify-center text-white text-2xl sm:text-3xl font-bold shrink-0">
                 {userData.name?.charAt(0).toUpperCase() || 'U'}
               </div>
               <div>
