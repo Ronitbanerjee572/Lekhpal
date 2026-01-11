@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 
@@ -79,6 +80,11 @@ export default function Auth() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-brand-bg-alt p-4 sm:p-6">
       <div className="bg-white p-6 sm:p-8 rounded-2xl shadow-xl w-full max-w-md border border-gray-100">
+        <Link to="/" className="block mb-6 hover:opacity-90 transition-opacity">
+          <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold text-center text-brand-text">
+            △ <span className="text-brand-accent">Lekhpal</span>
+          </h1>
+        </Link>
         <h2 className="text-2xl sm:text-3xl font-bold text-center mb-5 sm:mb-6 text-brand-text">
           {isLogin ? 'Welcome Back' : 'Create Account'}
         </h2>
