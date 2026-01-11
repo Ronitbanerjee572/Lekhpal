@@ -10,19 +10,32 @@ const app = express()
 const allowedOrigins = [
   'http://localhost:5173',
   'http://localhost:3000',
-  process.env.FRONTEND_URL // Add your Netlify URL as environment variable
-].filter(Boolean); // Remove undefined values
+  'https://lekhpal-blockchain.netlify.app',
+  process.env.FRONTEND_URL
+].filter(Boolean);
+
+// Enable CORS pre-flight
+app.options('*', cors());
 
 app.use(cors({
   origin: function (origin, callback) {
-    // Allow requests with no origin (mobile apps, curl, etc)
+    // Allow requests with no origin (like mobile apps, curl, etc)
     if (!origin) return callback(null, true);
-    if (allowedOrigins.indexOf(origin) !== -1 || process.env.NODE_ENV !== 'production') {
-      callback(null, true);
-    } else {
-      callback(new Error('Not allowed by CORS'));
+    
+    // Check if origin is in allowedOrigins or if we're in development
+    if (allowedOrigins.includes(origin) || process.env.NODE_ENV !== 'production') {
+      return callback(null, true);
     }
+    
+    // For production, allow any subdomain of netlify.app
+    if (origin.endsWith('.netlify.app')) {
+      return callback(null, true);
+    }
+    
+    callback(new Error('Not allowed by CORS'));
   },
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
   credentials: true
 }))
 app.use(bodyParser.json())
