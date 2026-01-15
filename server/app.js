@@ -4,6 +4,7 @@ const bodyParser = require('body-parser')
 const mongoose = require('mongoose')
 var cors = require('cors')
 const routes = require("./Routes/user")
+const blockchainRoutes = require("./Routes/blockchain");
 const app = express()
 
 // CORS configuration - allow frontend domains
@@ -48,6 +49,7 @@ mongoose
 var port = process.env.PORT || 3001
 
 app.use("/", routes);
+app.use("/blockchain", blockchainRoutes);
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {
