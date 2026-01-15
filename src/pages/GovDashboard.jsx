@@ -7,6 +7,7 @@ const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
 
 export default function GovDashboard() {
   const navigate = useNavigate();
+  const [activeTab, setActiveTab] = useState('register'); // 'register', 'pending-requests'
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(null);
@@ -37,7 +38,12 @@ export default function GovDashboard() {
   
   // Pending Deals
   const [pendingDeals, setPendingDeals] = useState([]);
+  const [pendingLandRequests, setPendingLandRequests] = useState([]);
   const [recentActivity, setRecentActivity] = useState([]);
+  const [processingRequestId, setProcessingRequestId] = useState(null);
+  const [rejectionReason, setRejectionReason] = useState('');
+  const [showRejectionModal, setShowRejectionModal] = useState(null);
+  const [currentRequestId, setCurrentRequestId] = useState(null); // Track which request is being processed
 
   // Get auth token
   const getAuthToken = () => {
@@ -122,6 +128,11 @@ export default function GovDashboard() {
       setError("Please fill all fields");
       setTimeout(() => setError(null), 3000);
       return;
+    }
+
+    // If this is from a pending request, call handleApproveLandRequest instead
+    if (currentRequestId) {
+      return handleApproveLandRequest(currentRequestId);
     }
 
     try {
@@ -228,6 +239,127 @@ export default function GovDashboard() {
     }
   };
 
+  // Fill form from pending land request
+  const fillFormFromRequest = (request) => {
+    setCurrentRequestId(request._id);
+    setRegisterForm({
+      ownerAddress: request.userWalletAddress,
+      khatian: request.khatian,
+      state: request.state,
+      city: request.city,
+      ward: request.ward,
+      area: request.areaInUnits.toString(),
+      valuation: ''
+    });
+    setActiveTab('register');
+    setSuccess(`Request from ${request.userId?.name || 'User'} loaded into form. Please enter the valuation and click "Register Land".`);
+    setTimeout(() => setSuccess(null), 5000);
+  };
+
+  // Handle approving request after valuation is filled
+  const handleApproveLandRequest = async (requestId) => {
+    if (!isAdmin) {
+      setError("Only admins can approve requests");
+      setTimeout(() => setError(null), 3000);
+      return;
+    }
+
+    if (!registerForm.valuation) {
+      setError("Please enter the valuation amount");
+      setTimeout(() => setError(null), 3000);
+      return;
+    }
+
+    try {
+      setProcessingRequestId(requestId);
+      setLoading(true);
+      
+      const response = await axios.post(
+        `${API_URL}/land-request/approve`,
+        { 
+          requestId,
+          valuation: registerForm.valuation
+        },
+        getAuthHeaders()
+      );
+      
+      if (response.data.success) {
+        setSuccess(`Land registered successfully! Transaction: ${response.data.txHash.slice(0, 10)}...`);
+        setTimeout(() => setSuccess(null), 3000);
+        
+        // Reset form
+        setRegisterForm({
+          ownerAddress: '',
+          khatian: '',
+          state: '',
+          city: '',
+          ward: '',
+          area: '',
+          valuation: ''
+        });
+        
+        // Refresh pending requests
+        await fetchPendingLandRequests();
+        setActiveTab('pending-requests');
+      }
+      
+    } catch (err) {
+      console.error("Error approving request:", err);
+      setError(err.response?.data?.message || `Failed to approve request: ${err.message}`);
+      setTimeout(() => setError(null), 3000);
+    } finally {
+      setLoading(false);
+      setProcessingRequestId(null);
+    }
+  };
+
+  // Handle rejecting a land request
+  const handleRejectLandRequest = async (requestId) => {
+    if (!isAdmin) {
+      setError("Only admins can reject requests");
+      return;
+    }
+
+    if (!rejectionReason.trim()) {
+      setError("Please provide a rejection reason");
+      return;
+    }
+
+    try {
+      setProcessingRequestId(requestId);
+      setLoading(true);
+      
+      const response = await axios.post(
+        `${API_URL}/land-request/reject`,
+        { 
+          requestId,
+          reason: rejectionReason
+        },
+        getAuthHeaders()
+      );
+      
+      if (response.data.success) {
+        setSuccess("Request rejected successfully");
+        setTimeout(() => setSuccess(null), 3000);
+        
+        // Reset rejection modal
+        setShowRejectionModal(null);
+        setRejectionReason('');
+        
+        // Refresh pending requests
+        await fetchPendingLandRequests();
+      }
+      
+    } catch (err) {
+      console.error("Error rejecting request:", err);
+      setError(err.response?.data?.message || `Failed to reject request: ${err.message}`);
+      setTimeout(() => setError(null), 3000);
+    } finally {
+      setLoading(false);
+      setProcessingRequestId(null);
+    }
+  };
+
   const loadPendingDeals = async () => {
     try {
       const response = await axios.get(`${API_URL}/blockchain/pending-deals`, getAuthHeaders());
@@ -239,6 +371,28 @@ export default function GovDashboard() {
       console.error("Error loading deals:", err);
     }
   };
+
+  const fetchPendingLandRequests = async () => {
+    try {
+      setLoading(true);
+      const response = await axios.get(`${API_URL}/land-request/pending`, getAuthHeaders());
+      if (response.data.success) {
+        setPendingLandRequests(response.data.requests);
+      }
+    } catch (err) {
+      console.error("Error fetching pending requests:", err);
+      setError("Failed to fetch pending land requests");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Fetch pending requests when tab changes
+  useEffect(() => {
+    if (activeTab === 'pending-requests' && isAdmin) {
+      fetchPendingLandRequests();
+    }
+  }, [activeTab, isAdmin]);
 
   return (
     <div className="min-h-screen bg-brand-bg p-4 sm:p-6 md:p-8">
@@ -308,6 +462,33 @@ export default function GovDashboard() {
           </button>
         </div>
       ) : (
+        <>
+        {/* Tabs Navigation */}
+        <div className="flex gap-2 sm:gap-4 mb-6 flex-wrap">
+          <button
+            onClick={() => setActiveTab('register')}
+            className={`px-4 sm:px-6 py-2 sm:py-3 rounded-lg font-semibold transition ${
+              activeTab === 'register'
+                ? 'bg-indigo-600 text-white'
+                : 'bg-white text-gray-700 hover:bg-gray-50'
+            }`}
+          >
+            Land Registration
+          </button>
+          <button
+            onClick={() => setActiveTab('pending-requests')}
+            className={`px-4 sm:px-6 py-2 sm:py-3 rounded-lg font-semibold transition ${
+              activeTab === 'pending-requests'
+                ? 'bg-indigo-600 text-white'
+                : 'bg-white text-gray-700 hover:bg-gray-50'
+            }`}
+          >
+            Pending Requests ({pendingLandRequests.length})
+          </button>
+        </div>
+
+        {/* Register Tab */}
+        {activeTab === 'register' && (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6 md:gap-8">
         {/* Top row: 1 - Set Valuation, 2 - Register Land, 3 - Approve Escrow (top) */}
           {/* Set Valuation */}
@@ -446,7 +627,7 @@ export default function GovDashboard() {
                     disabled={loading || !isAdmin}
                     className="w-full bg-brand-text text-white py-3 rounded-lg font-bold hover:bg-brand-accent transition disabled:opacity-50 disabled:cursor-not-allowed mt-2"
                   >
-                    {loading ? 'Registering...' : 'Register Land'}
+                    {loading ? 'Registering...' : currentRequestId ? 'Approve & Register Request' : 'Register Land'}
                   </button>
               </form>
           </div>
@@ -512,6 +693,126 @@ export default function GovDashboard() {
              </div>
           </div>
         </div>
+        )}
+
+        {/* Pending Requests Tab */}
+        {activeTab === 'pending-requests' && (
+          <div className="bg-white rounded-lg shadow-lg p-6 sm:p-8">
+            <h2 className="text-2xl font-bold text-gray-800 mb-6">
+              Pending Land Registration Requests
+            </h2>
+
+            {pendingLandRequests.length === 0 ? (
+              <div className="text-center py-12">
+                <AlertCircle className="w-12 h-12 text-gray-400 mx-auto mb-3" />
+                <p className="text-gray-500 text-lg">
+                  No pending land registration requests
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {pendingLandRequests.map((request) => (
+                  <div
+                    key={request._id}
+                    className="border border-gray-200 p-6 rounded-lg hover:shadow-md transition"
+                  >
+                    <div className="flex justify-between items-start mb-4">
+                      <div>
+                        <h3 className="text-lg font-semibold text-gray-800">
+                          Khatian: {request.khatian}
+                        </h3>
+                        <p className="text-sm text-gray-600">
+                          {request.city}, {request.state}
+                        </p>
+                        <p className="text-sm text-gray-500 mt-1">
+                          Requested by: {request.userId?.name} ({request.userId?.email})
+                        </p>
+                      </div>
+                      <span className="bg-yellow-100 text-yellow-800 px-3 py-1 rounded-full text-sm font-semibold">
+                        Pending
+                      </span>
+                    </div>
+
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
+                      <div>
+                        <p className="text-xs text-gray-600">Ward</p>
+                        <p className="font-semibold">{request.ward}</p>
+                      </div>
+                      <div>
+                        <p className="text-xs text-gray-600">Area</p>
+                        <p className="font-semibold">{request.areaInUnits} sq units</p>
+                      </div>
+                      <div>
+                        <p className="text-xs text-gray-600">Owner Wallet</p>
+                        <p className="font-mono text-xs">
+                          {request.userWalletAddress.substring(0, 8)}...
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-xs text-gray-600">Submitted</p>
+                        <p className="font-semibold">
+                          {new Date(request.createdAt).toLocaleDateString()}
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="flex gap-3">
+                      <button
+                        onClick={() => fillFormFromRequest(request)}
+                        disabled={loading}
+                        className="flex-1 bg-blue-600 text-white py-2 rounded-lg font-semibold hover:bg-blue-700 disabled:opacity-50 transition"
+                      >
+                        Fill Form & Set Valuation
+                      </button>
+                      <button
+                        onClick={() => setShowRejectionModal(request._id)}
+                        disabled={processingRequestId === request._id || loading}
+                        className="flex-1 bg-red-600 text-white py-2 rounded-lg font-semibold hover:bg-red-700 disabled:opacity-50 transition"
+                      >
+                        Reject
+                      </button>
+                    </div>
+
+                    {/* Rejection Modal */}
+                    {showRejectionModal === request._id && (
+                      <div className="mt-4 p-4 bg-red-50 border border-red-200 rounded-lg">
+                        <label className="block text-sm font-semibold text-gray-700 mb-2">
+                          Rejection Reason
+                        </label>
+                        <textarea
+                          value={rejectionReason}
+                          onChange={(e) => setRejectionReason(e.target.value)}
+                          placeholder="Enter reason for rejection..."
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent mb-3"
+                          rows="3"
+                        />
+                        <div className="flex gap-2">
+                          <button
+                            onClick={() => handleRejectLandRequest(request._id)}
+                            disabled={loading}
+                            className="flex-1 bg-red-600 text-white py-2 rounded-lg font-semibold hover:bg-red-700 disabled:opacity-50 transition"
+                          >
+                            {loading ? "Processing..." : "Confirm Rejection"}
+                          </button>
+                          <button
+                            onClick={() => {
+                              setShowRejectionModal(null);
+                              setRejectionReason('');
+                            }}
+                            className="flex-1 bg-gray-300 text-gray-800 py-2 rounded-lg font-semibold hover:bg-gray-400 transition"
+                          >
+                            Cancel
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+        </>
       )}
     </div>
   );
