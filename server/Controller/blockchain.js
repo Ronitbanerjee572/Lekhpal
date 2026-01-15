@@ -1,7 +1,6 @@
 const { ethers } = require('ethers');
 const { landRegistryContract, escrowContract, wallet } = require('../Config/contract');
 
-// Register Land
 async function registerLand(req, res) {
     try {
         const { ownerAddress, khatian, state, city, ward, area, valuation } = req.body;
@@ -18,18 +17,18 @@ async function registerLand(req, res) {
         const adminAddress = await landRegistryContract.admin();
         console.log("Admin Address:", adminAddress);
         console.log("Wallet Address:", wallet.address);
-        
+
         // Check wallet balance
         const balance = await wallet.provider.getBalance(wallet.address);
         console.log("Wallet Balance:", ethers.formatEther(balance), "ETH");
-        
+
         if (balance === 0n) {
-            return res.status(500).json({ 
+            return res.status(500).json({
                 success: false,
-                message: "Backend wallet has no ETH. Please fund it with Sepolia testnet ETH." 
+                message: "Backend wallet has no ETH. Please fund it with Sepolia testnet ETH."
             });
         }
-        
+
         if (wallet.address.toLowerCase() !== adminAddress.toLowerCase()) {
             return res.status(403).json({ message: "Only admin can register lands" });
         }
@@ -90,17 +89,17 @@ async function registerLand(req, res) {
 
         // Wait for transaction confirmation with timeout
         console.log("Waiting for transaction confirmation...");
-        
+
         let receipt;
         try {
             // Use Promise.race to add timeout
             receipt = await Promise.race([
                 tx.wait(1),
-                new Promise((_, reject) => 
+                new Promise((_, reject) =>
                     setTimeout(() => reject(new Error('Transaction confirmation timeout')), 120000) // 2 minute timeout
                 )
             ]);
-            
+
             console.log("✅ Transaction confirmed!");
             console.log("Block number:", receipt.blockNumber);
             console.log("Gas used:", receipt.gasUsed.toString());
@@ -109,7 +108,7 @@ async function registerLand(req, res) {
             // If timeout or error, try to get transaction status manually
             console.log("⚠️ Wait timeout or error:", waitError.message);
             console.log("Checking transaction status manually...");
-            
+
             const txStatus = await wallet.provider.getTransaction(tx.hash);
             if (!txStatus) {
                 return res.status(500).json({
@@ -119,7 +118,7 @@ async function registerLand(req, res) {
                     etherscanUrl: `https://sepolia.etherscan.io/tx/${tx.hash}`
                 });
             }
-            
+
             if (txStatus.blockNumber) {
                 console.log("Transaction is mined in block:", txStatus.blockNumber);
                 receipt = await wallet.provider.getTransactionReceipt(tx.hash);
@@ -150,15 +149,14 @@ async function registerLand(req, res) {
 
     } catch (err) {
         console.error("Error registering land:", err);
-        return res.status(500).json({ 
+        return res.status(500).json({
             success: false,
-            message: "Failed to register land", 
-            error: err.message 
+            message: "Failed to register land",
+            error: err.message
         });
     }
 }
 
-// Set Valuation
 async function setValuation(req, res) {
     try {
         const { landId, value } = req.body;
@@ -191,15 +189,14 @@ async function setValuation(req, res) {
 
     } catch (err) {
         console.error("Error setting valuation:", err);
-        return res.status(500).json({ 
+        return res.status(500).json({
             success: false,
-            message: "Failed to set valuation", 
-            error: err.message 
+            message: "Failed to set valuation",
+            error: err.message
         });
     }
 }
 
-// Approve Deal
 async function approveDeal(req, res) {
     try {
         const { dealId } = req.body;
@@ -230,15 +227,14 @@ async function approveDeal(req, res) {
 
     } catch (err) {
         console.error("Error approving deal:", err);
-        return res.status(500).json({ 
+        return res.status(500).json({
             success: false,
-            message: "Failed to approve deal", 
-            error: err.message 
+            message: "Failed to approve deal",
+            error: err.message
         });
     }
 }
 
-// Get Pending Deals
 async function getPendingDeals(req, res) {
     try {
         const dealCount = await escrowContract.dealCount();
@@ -265,15 +261,14 @@ async function getPendingDeals(req, res) {
 
     } catch (err) {
         console.error("Error getting pending deals:", err);
-        return res.status(500).json({ 
+        return res.status(500).json({
             success: false,
-            message: "Failed to get pending deals", 
-            error: err.message 
+            message: "Failed to get pending deals",
+            error: err.message
         });
     }
 }
 
-// Get Land Details
 async function getLandDetails(req, res) {
     try {
         const { landId } = req.params;
@@ -296,15 +291,14 @@ async function getLandDetails(req, res) {
 
     } catch (err) {
         console.error("Error getting land details:", err);
-        return res.status(500).json({ 
+        return res.status(500).json({
             success: false,
-            message: "Failed to get land details", 
-            error: err.message 
+            message: "Failed to get land details",
+            error: err.message
         });
     }
 }
 
-// Check if admin
 async function checkAdmin(req, res) {
     try {
         if (!wallet) {
@@ -323,13 +317,46 @@ async function checkAdmin(req, res) {
 
     } catch (err) {
         console.error("Error checking admin:", err);
-        return res.status(500).json({ 
+        return res.status(500).json({
             success: false,
-            message: "Failed to check admin status", 
-            error: err.message 
+            message: "Failed to check admin status",
+            error: err.message
         });
     }
 }
+
+async function getRecentLandActivity(req, res) {
+    try {
+        const provider = wallet.provider;
+
+        const events = await landRegistryContract.queryFilter(
+            landRegistryContract.filters.LandRegistered(),
+            -5000
+        );
+
+        const activity = await Promise.all(
+            events.reverse().slice(0, 5).map(async (e) => {
+                const block = await provider.getBlock(e.blockNumber);
+
+                return {
+                    landId: e.args.landId.toString(),
+                    owner: e.args.owner,
+                    khatian: e.args.khatian,
+                    timestamp: block.timestamp * 1000 // ms
+                };
+            })
+        );
+
+        res.json({ success: true, activity });
+
+    } catch (err) {
+        res.status(500).json({
+            success: false,
+            message: err.message
+        });
+    }
+}
+
 
 module.exports = {
     registerLand,
@@ -337,5 +364,6 @@ module.exports = {
     approveDeal,
     getPendingDeals,
     getLandDetails,
-    checkAdmin
+    checkAdmin,
+    getRecentLandActivity,
 };
