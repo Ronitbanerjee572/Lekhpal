@@ -283,7 +283,7 @@ export default function Profile() {
             △ <span className="text-brand-accent">Profile</span>
           </h1>
           <button
-            onClick={() => navigate('/dashboard')}
+            onClick={() => navigate(userData.role === 'admin' ? '/gov-dashboard' : '/dashboard')}
             className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition text-sm sm:text-base w-full sm:w-auto"
           >
             Back to Dashboard
