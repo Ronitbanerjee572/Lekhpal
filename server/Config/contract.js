@@ -1,8 +1,11 @@
-// Contract configuration
-export const LAND_REGISTRY_ADDRESS = "0x3C4A068c391D242Cd9821539113395657D36741e"; // Deployed Land Registry
-export const ESCROW_ADDRESS = "0xC38333feEc975a052628385705b9213eecED305C"; // Deployed Escrow Contract
+const { ethers } = require('ethers');
 
-export const LAND_REGISTRY_ABI = [
+// Contract addresses
+const LAND_REGISTRY_ADDRESS = "0x3C4A068c391D242Cd9821539113395657D36741e";
+const ESCROW_ADDRESS = "0xC38333feEc975a052628385705b9213eecED305C";
+
+// Land Registry ABI
+const LAND_REGISTRY_ABI = [
   {
     "inputs": [],
     "stateMutability": "nonpayable",
@@ -148,6 +151,19 @@ export const LAND_REGISTRY_ABI = [
         "internalType": "address[]",
         "name": "",
         "type": "address[]"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "admin",
+    "outputs": [
+      {
+        "internalType": "address",
+        "name": "",
+        "type": "address"
       }
     ],
     "stateMutability": "view",
@@ -335,7 +351,8 @@ export const LAND_REGISTRY_ABI = [
   }
 ];
 
-export const ESCROW_ABI = [
+// Escrow ABI
+const ESCROW_ABI = [
   {
     "inputs": [
       {
@@ -486,8 +503,71 @@ export const ESCROW_ABI = [
   }
 ];
 
-// RPC URL - Change based on your network
-export const RPC_URL = "https://eth-sepolia.g.alchemy.com/v2/m5AHUvA6ATZVN1iZ8gZdw"; // Local Ganache/Hardhat
-// For testnets use appropriate RPC URLs:
-// Sepolia: "https://sepolia.infura.io/v3/YOUR_INFURA_KEY"
-// Mainnet: "https://mainnet.infura.io/v3/YOUR_INFURA_KEY"
+// Initialize provider and wallet
+const RPC_URL = process.env.RPC_URL || "https://eth-sepolia.g.alchemy.com/v2/m5AHUvA6ATZVN1iZ8gZdw";
+const PRIVATE_KEY = process.env.PRIVATE_KEY;
+
+if (!PRIVATE_KEY) {
+    console.error("⚠️  WARNING: PRIVATE_KEY not set in .env file!");
+}
+
+let provider, wallet, landRegistryContract, escrowContract;
+
+try {
+    provider = new ethers.JsonRpcProvider(RPC_URL);
+    
+    // Verify network connection
+    provider.getNetwork().then(network => {
+        console.log("📡 Connected to network:", network.name, "Chain ID:", network.chainId);
+        if (network.chainId !== 11155111n) {
+            console.warn("⚠️  WARNING: Not connected to Sepolia testnet (expected chainId 11155111)");
+        }
+    }).catch(err => {
+        console.error("❌ Failed to verify network:", err.message);
+    });
+    
+    if (PRIVATE_KEY) {
+        wallet = new ethers.Wallet(PRIVATE_KEY, provider);
+        
+        // Initialize contracts with signer
+        landRegistryContract = new ethers.Contract(
+            LAND_REGISTRY_ADDRESS,
+            LAND_REGISTRY_ABI,
+            wallet
+        );
+        
+        escrowContract = new ethers.Contract(
+            ESCROW_ADDRESS,
+            ESCROW_ABI,
+            wallet
+        );
+        
+        console.log("✅ Contracts initialized with wallet:", wallet.address);
+    } else {
+        // Initialize read-only contracts
+        landRegistryContract = new ethers.Contract(
+            LAND_REGISTRY_ADDRESS,
+            LAND_REGISTRY_ABI,
+            provider
+        );
+        
+        escrowContract = new ethers.Contract(
+            ESCROW_ADDRESS,
+            ESCROW_ABI,
+            provider
+        );
+        
+        console.log("⚠️  Contracts initialized in READ-ONLY mode");
+    }
+} catch (error) {
+    console.error("❌ Failed to initialize contracts:", error.message);
+}
+
+module.exports = {
+    provider,
+    wallet,
+    landRegistryContract,
+    escrowContract,
+    LAND_REGISTRY_ADDRESS,
+    ESCROW_ADDRESS
+};

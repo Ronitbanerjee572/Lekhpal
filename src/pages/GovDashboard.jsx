@@ -1,18 +1,17 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { FileCheck, DollarSign, PenTool, Activity, Wallet, AlertCircle, CheckCircle, LogOut, User } from 'lucide-react';
-import { ethers } from 'ethers';
-import { LAND_REGISTRY_ADDRESS, LAND_REGISTRY_ABI, ESCROW_ADDRESS, ESCROW_ABI, RPC_URL } from '../config/contractConfig';
+import axios from 'axios';
+
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
 
 export default function GovDashboard() {
   const navigate = useNavigate();
-  const [account, setAccount] = useState(null);
-  const [contract, setContract] = useState(null);
-  const [escrowContract, setEscrowContract] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(null);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [walletAddress, setWalletAddress] = useState(null);
   
   // Register Land Form
   const [registerForm, setRegisterForm] = useState({
@@ -40,106 +39,41 @@ export default function GovDashboard() {
   const [pendingDeals, setPendingDeals] = useState([]);
   const [recentActivity, setRecentActivity] = useState([]);
 
-  // Initialize contract with signer when wallet connected
-  useEffect(() => {
-    if (account) {
-      initContractWithSigner();
-      checkIfAdmin();
-    }
-  }, [account]);
+  // Get auth token
+  const getAuthToken = () => {
+    return localStorage.getItem('token');
+  };
 
-  // Initialize provider for reading contract data
+  // Get auth headers
+  const getAuthHeaders = () => {
+    const token = getAuthToken();
+    return {
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      }
+    };
+  };
+
+  // Check admin status on mount
   useEffect(() => {
-    initProviderContract();
+    checkAdminStatus();
+    loadPendingDeals();
   }, []);
 
-  const initProviderContract = async () => {
+  const checkAdminStatus = async () => {
     try {
-      const provider = new ethers.JsonRpcProvider(RPC_URL);
-      const contractInstance = new ethers.Contract(
-        LAND_REGISTRY_ADDRESS,
-        LAND_REGISTRY_ABI,
-        provider
-      );
-      const escrowInstance = new ethers.Contract(
-        ESCROW_ADDRESS,
-        ESCROW_ABI,
-        provider
-      );
-      setContract(contractInstance);
-      setEscrowContract(escrowInstance);
-    } catch (err) {
-      console.error("Failed to initialize provider contract:", err);
-    }
-  };
-
-  const initContractWithSigner = async () => {
-    try {
-      const provider = new ethers.BrowserProvider(window.ethereum);
-      const signer = await provider.getSigner();
-      
-      const contractWithSigner = new ethers.Contract(
-        LAND_REGISTRY_ADDRESS,
-        LAND_REGISTRY_ABI,
-        signer
-      );
-      
-      const escrowWithSigner = new ethers.Contract(
-        ESCROW_ADDRESS,
-        ESCROW_ABI,
-        signer
-      );
-      
-      setContract(contractWithSigner);
-      setEscrowContract(escrowWithSigner);
-    } catch (err) {
-      console.error("Failed to initialize signer contract:", err);
-    }
-  };
-
-  const checkIfAdmin = async () => {
-    try {
-      const provider = new ethers.JsonRpcProvider(RPC_URL);
-      const contractWithProvider = new ethers.Contract(
-        LAND_REGISTRY_ADDRESS,
-        LAND_REGISTRY_ABI,
-        provider
-      );
-      
-      const adminAddress = await contractWithProvider.admin();
-      setIsAdmin(adminAddress.toLowerCase() === account.toLowerCase());
-    } catch (err) {
-      console.error("Failed to check admin status:", err);
-      setIsAdmin(false);
-    }
-  };
-
-  const handleConnectWallet = async () => {
-    if (!window.ethereum) {
-      setError("MetaMask not detected! Please install MetaMask.");
-      setTimeout(() => setError(null), 3000);
-      return;
-    }
-
-    try {
-      const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
-      if (accounts && accounts.length > 0) {
-        setAccount(accounts[0]);
-        setSuccess(`Connected: ${accounts[0].slice(0, 6)}...${accounts[0].slice(-4)}`);
-        setTimeout(() => setSuccess(null), 3000);
+      const response = await axios.get(`${API_URL}/blockchain/check-admin`, getAuthHeaders());
+      if (response.data.success) {
+        setIsAdmin(response.data.isAdmin);
+        setWalletAddress(response.data.walletAddress);
       }
     } catch (err) {
-      console.error("MetaMask connection failed", err);
-      setError("Failed to connect MetaMask.");
-      setTimeout(() => setError(null), 3000);
+      console.error("Failed to check admin status:", err);
+      if (err.response?.status === 401) {
+        navigate('/auth');
+      }
     }
-  };
-
-  const handleDisconnect = () => {
-    setAccount(null);
-    setIsAdmin(false);
-    setError(null);
-    setSuccess(null);
   };
 
   const handleLogout = () => {
@@ -147,15 +81,37 @@ export default function GovDashboard() {
     navigate('/auth');
   };
 
+  const handleConnectWallet = async () => {
+    try {
+      setLoading(true);
+      const response = await axios.get(`${API_URL}/blockchain/check-admin`, getAuthHeaders());
+      
+      if (response.data.success) {
+        setWalletAddress(response.data.walletAddress);
+        setIsAdmin(response.data.isAdmin);
+        setSuccess("Connected to backend successfully!");
+        setTimeout(() => setSuccess(null), 3000);
+      } else {
+        setError("Failed to connect to backend");
+        setTimeout(() => setError(null), 3000);
+      }
+    } catch (err) {
+      console.error("Error connecting to backend:", err);
+      if (err.response?.status === 401) {
+        setError("Authentication failed. Please login again.");
+        setTimeout(() => navigate('/auth'), 2000);
+      } else {
+        setError("Failed to connect to backend. Please try again.");
+      }
+      setTimeout(() => setError(null), 3000);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleRegisterLand = async (e) => {
     e.preventDefault();
     
-    if (!account) {
-      setError("Please connect wallet first");
-      setTimeout(() => setError(null), 3000);
-      return;
-    }
-
     if (!isAdmin) {
       setError("Only admins can register lands");
       setTimeout(() => setError(null), 3000);
@@ -171,36 +127,29 @@ export default function GovDashboard() {
     try {
       setLoading(true);
       
-      const valuationInWei = ethers.parseEther(registerForm.valuation);
-      const areaInUnits = parseInt(registerForm.area);
-      
-      const tx = await contract.registerLand(
-        registerForm.ownerAddress,
-        registerForm.khatian,
-        registerForm.state,
-        registerForm.city,
-        registerForm.ward,
-        areaInUnits,
-        valuationInWei
+      const response = await axios.post(
+        `${API_URL}/blockchain/register-land`,
+        registerForm,
+        getAuthHeaders()
       );
       
-      await tx.wait();
-      
-      setSuccess(`Land registered successfully! Khatian: ${registerForm.khatian}`);
-      setRegisterForm({
-        ownerAddress: '',
-        khatian: '',
-        state: '',
-        city: '',
-        ward: '',
-        area: '',
-        valuation: ''
-      });
-      setTimeout(() => setSuccess(null), 3000);
+      if (response.data.success) {
+        setSuccess(response.data.message);
+        setRegisterForm({
+          ownerAddress: '',
+          khatian: '',
+          state: '',
+          city: '',
+          ward: '',
+          area: '',
+          valuation: ''
+        });
+        setTimeout(() => setSuccess(null), 3000);
+      }
       
     } catch (err) {
       console.error("Error registering land:", err);
-      setError(`Failed to register land: ${err.message}`);
+      setError(err.response?.data?.message || `Failed to register land: ${err.message}`);
       setTimeout(() => setError(null), 3000);
     } finally {
       setLoading(false);
@@ -210,12 +159,6 @@ export default function GovDashboard() {
   const handleSetValuation = async (e) => {
     e.preventDefault();
     
-    if (!account) {
-      setError("Please connect wallet first");
-      setTimeout(() => setError(null), 3000);
-      return;
-    }
-
     if (!isAdmin) {
       setError("Only admins can set valuations");
       setTimeout(() => setError(null), 3000);
@@ -231,18 +174,21 @@ export default function GovDashboard() {
     try {
       setLoading(true);
       
-      const valueInWei = ethers.parseEther(valuationForm.value);
-      const tx = await contract.setValuation(parseInt(valuationForm.landId), valueInWei);
+      const response = await axios.post(
+        `${API_URL}/blockchain/set-valuation`,
+        valuationForm,
+        getAuthHeaders()
+      );
       
-      await tx.wait();
-      
-      setSuccess(`Valuation updated for Land #${valuationForm.landId}!`);
-      setValuationForm({ landId: '', value: '' });
-      setTimeout(() => setSuccess(null), 3000);
+      if (response.data.success) {
+        setSuccess(response.data.message);
+        setValuationForm({ landId: '', value: '' });
+        setTimeout(() => setSuccess(null), 3000);
+      }
       
     } catch (err) {
       console.error("Error setting valuation:", err);
-      setError(`Failed to set valuation: ${err.message}`);
+      setError(err.response?.data?.message || `Failed to set valuation: ${err.message}`);
       setTimeout(() => setError(null), 3000);
     } finally {
       setLoading(false);
@@ -250,12 +196,6 @@ export default function GovDashboard() {
   };
 
   const handleApproveDeal = async (dealId) => {
-    if (!account) {
-      setError("Please connect wallet first");
-      setTimeout(() => setError(null), 3000);
-      return;
-    }
-
     if (!isAdmin) {
       setError("Only admins can approve deals");
       setTimeout(() => setError(null), 3000);
@@ -265,18 +205,23 @@ export default function GovDashboard() {
     try {
       setLoading(true);
       
-      const tx = await escrowContract.approveDeal(dealId);
-      await tx.wait();
+      const response = await axios.post(
+        `${API_URL}/blockchain/approve-deal`,
+        { dealId },
+        getAuthHeaders()
+      );
       
-      setSuccess(`Deal #${dealId} approved successfully!`);
-      setTimeout(() => setSuccess(null), 3000);
-      
-      // Refresh pending deals
-      await loadPendingDeals();
+      if (response.data.success) {
+        setSuccess(response.data.message);
+        setTimeout(() => setSuccess(null), 3000);
+        
+        // Refresh pending deals
+        await loadPendingDeals();
+      }
       
     } catch (err) {
       console.error("Error approving deal:", err);
-      setError(`Failed to approve deal: ${err.message}`);
+      setError(err.response?.data?.message || `Failed to approve deal: ${err.message}`);
       setTimeout(() => setError(null), 3000);
     } finally {
       setLoading(false);
@@ -285,37 +230,15 @@ export default function GovDashboard() {
 
   const loadPendingDeals = async () => {
     try {
-      if (!escrowContract) return;
+      const response = await axios.get(`${API_URL}/blockchain/pending-deals`, getAuthHeaders());
       
-      const dealCount = await escrowContract.dealCount();
-      const deals = [];
-      
-      for (let i = 1; i <= dealCount; i++) {
-        const deal = await escrowContract.deals(i);
-        
-        if (!deal.completed) {
-          deals.push({
-            id: i,
-            buyer: deal.buyer,
-            landId: deal.landId.toString(),
-            amount: ethers.formatEther(deal.amount),
-            completed: deal.completed
-          });
-        }
+      if (response.data.success) {
+        setPendingDeals(response.data.deals);
       }
-      
-      setPendingDeals(deals);
     } catch (err) {
       console.error("Error loading deals:", err);
     }
   };
-
-  // Load pending deals when contract is ready
-  useEffect(() => {
-    if (escrowContract) {
-      loadPendingDeals();
-    }
-  }, [escrowContract]);
 
   return (
     <div className="min-h-screen bg-brand-bg p-4 sm:p-6 md:p-8">
@@ -332,28 +255,15 @@ export default function GovDashboard() {
             >
               <User size={16} className="sm:w-[18px] sm:h-[18px]" /> <span className="hidden sm:inline">Profile</span><span className="sm:hidden">Profile</span>
             </button>
-            {account ? (
-              <>
-                <div className="bg-white p-2 sm:p-3 rounded-lg shadow-sm">
-                  <p className="text-xs text-gray-600 mb-1">Connected Account</p>
-                  <p className="font-bold text-brand-accent text-xs sm:text-sm break-all">{account.slice(0, 6)}...{account.slice(-4)}</p>
-                  {isAdmin && <p className="text-xs text-green-600 font-medium">✓ Admin</p>}
-                </div>
-                <button
-                  onClick={handleDisconnect}
-                  className="flex items-center gap-1.5 sm:gap-2 bg-gray-600 text-white px-3 sm:px-4 py-2 rounded-lg hover:bg-gray-700 transition text-sm sm:text-base"
-                >
-                  <LogOut size={14} className="sm:w-4 sm:h-4" /> <span className="hidden sm:inline">Disconnect Wallet</span><span className="sm:hidden">Disconnect</span>
-                </button>
-              </>
-            ) : (
-              <button
-                onClick={handleConnectWallet}
-                className="flex items-center gap-1.5 sm:gap-2 bg-brand-text text-white px-4 sm:px-6 py-2 sm:py-3 rounded-lg hover:bg-brand-accent transition font-bold text-sm sm:text-base"
-              >
-                <Wallet size={18} className="sm:w-5 sm:h-5" /> <span className="hidden sm:inline">Connect Wallet</span><span className="sm:hidden">Connect</span>
-              </button>
+            
+            {walletAddress && (
+              <div className="bg-white p-2 sm:p-3 rounded-lg shadow-sm">
+                <p className="text-xs text-gray-600 mb-1">Backend Wallet</p>
+                <p className="font-bold text-brand-accent text-xs sm:text-sm break-all">{walletAddress.slice(0, 6)}...{walletAddress.slice(-4)}</p>
+                {isAdmin && <p className="text-xs text-green-600 font-medium">✓ Admin</p>}
+              </div>
             )}
+            
             <button
               onClick={handleLogout}
               className="flex items-center gap-1.5 sm:gap-2 bg-red-600 text-white px-3 sm:px-4 py-2 rounded-lg hover:bg-red-700 transition text-sm sm:text-base"
@@ -378,14 +288,14 @@ export default function GovDashboard() {
         </div>
       )}
 
-      {!isAdmin && account && (
+      {!isAdmin && walletAddress && (
         <div className="bg-yellow-50 border border-yellow-200 text-yellow-700 px-4 py-3 rounded-lg mb-6 flex items-center gap-2">
           <AlertCircle size={20} />
           <span>Your wallet is not an admin. Please contact the system administrator.</span>
         </div>
       )}
 
-      {!account ? (
+      {!walletAddress ? (
         <div className="bg-white p-6 sm:p-8 md:p-12 rounded-xl shadow-md text-center">
           <Wallet size={40} className="sm:w-12 sm:h-12 mx-auto text-gray-400 mb-3 sm:mb-4" />
           <h2 className="text-xl sm:text-2xl font-bold text-brand-text mb-2">Connect Your Wallet</h2>
@@ -433,7 +343,7 @@ export default function GovDashboard() {
                   </div>
                   <button 
                     type="submit"
-                    disabled={loading || !account || !isAdmin}
+                    disabled={loading || !isAdmin}
                     className="w-full bg-brand-text text-white py-3 rounded-lg font-bold hover:bg-brand-accent transition disabled:opacity-50 disabled:cursor-not-allowed mt-2"
                   >
                     {loading ? 'Updating...' : 'Update Valuation'}
@@ -533,7 +443,7 @@ export default function GovDashboard() {
                   </div>
                   <button 
                     type="submit"
-                    disabled={loading || !account || !isAdmin}
+                    disabled={loading || !isAdmin}
                     className="w-full bg-brand-text text-white py-3 rounded-lg font-bold hover:bg-brand-accent transition disabled:opacity-50 disabled:cursor-not-allowed mt-2"
                   >
                     {loading ? 'Registering...' : 'Register Land'}
