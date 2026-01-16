@@ -40,12 +40,14 @@ export default function Marketplace() {
   }, [contract, account]);
 
   useEffect(() => {
+    if (!contract) return;
+    
     if (activeTab === 'buy') {
       fetchListings();
     } else if (activeTab === 'my-listings') {
       fetchMyListings();
     }
-  }, [activeTab]);
+  }, [activeTab, contract]);
 
   const fetchUserData = async () => {
     try {
@@ -116,6 +118,11 @@ export default function Marketplace() {
   };
 
   const fetchListings = async () => {
+    if (!contract) {
+      console.error('Contract not initialized');
+      return;
+    }
+
     try {
       const token = localStorage.getItem('token');
       const response = await axios.get(`${API_URL}/marketplace/listings`, {
@@ -154,6 +161,11 @@ export default function Marketplace() {
   };
 
   const fetchMyListings = async () => {
+    if (!contract) {
+      console.error('Contract not initialized');
+      return;
+    }
+
     try {
       const token = localStorage.getItem('token');
       const response = await axios.get(`${API_URL}/marketplace/my-listings`, {
