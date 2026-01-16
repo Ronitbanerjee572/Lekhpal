@@ -22,6 +22,12 @@ export default function UserDashboard() {
   const [buyingLandId, setBuyingLandId] = useState(null);
   const [buyingLoading, setBuyingLoading] = useState(false);
   const [userPinCode, setUserPinCode] = useState(null);
+  const [userWallet, setUserWallet] = useState(null);
+  const [buyerStatus, setBuyerStatus] = useState('not_requested');
+  const [sellerStatus, setSellerStatus] = useState('not_requested');
+  const [marketplaceListings, setMarketplaceListings] = useState([]);
+  const [myListings, setMyListings] = useState([]);
+  const [listingLoading, setListingLoading] = useState(false);
 
   // Land request states
   const [landFormData, setLandFormData] = useState({
@@ -80,12 +86,24 @@ export default function UserDashboard() {
         }
       });
 
-      if (response.data && response.data.pinCode) {
-        setUserPinCode(response.data.pinCode);
+        if (response.data) {
+          if (response.data.pinCode) {
+            setUserPinCode(response.data.pinCode);
+          }
+          if (response.data.walletAddress) {
+            setUserWallet(response.data.walletAddress);
+            // Auto-set account to user's database wallet for owned lands display
+            setAccount(response.data.walletAddress);
+          }
+          if (response.data.buyerStatus) {
+            setBuyerStatus(response.data.buyerStatus);
+          }
+          if (response.data.sellerStatus) {
+            setSellerStatus(response.data.sellerStatus);
+          }
       }
     } catch (err) {
-      console.error('Error fetching user pinCode:', err);
-      // Silently fail - will use default pinCode
+        console.error('Error fetching user data:', err);
     }
   };
 
@@ -402,6 +420,12 @@ export default function UserDashboard() {
       <header className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 md:mb-8 bg-white p-3 sm:p-4 rounded-xl shadow-sm gap-3 sm:gap-4">
         <h1 className="text-2xl sm:text-3xl font-bold text-brand-text">△ <span className="text-brand-accent">Lekhpal</span></h1>
         <div className="flex flex-wrap gap-2 sm:gap-3 w-full sm:w-auto">
+             <button 
+                onClick={() => navigate('/marketplace')}
+                className="flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 rounded-lg bg-purple-600 text-white hover:bg-purple-700 transition shadow-md text-sm sm:text-base"
+             >
+                <Grid size={16} className="sm:w-[18px] sm:h-[18px]" /> <span className="hidden sm:inline">Marketplace</span><span className="sm:hidden">Market</span>
+             </button>
              <button 
                 onClick={() => navigate('/profile')}
                 className="flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700 transition shadow-md text-sm sm:text-base"

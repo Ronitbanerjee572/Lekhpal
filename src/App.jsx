@@ -5,6 +5,7 @@ import Auth from './pages/Auth';
 import UserDashboard from './pages/UserDashboard';
 import GovDashboard from './pages/GovDashboard';
 import Profile from './pages/Profile';
+import Marketplace from './pages/Marketplace';
 import ProtectedRoute from './components/ProtectedRoute';
 
 function App() {
@@ -16,6 +17,7 @@ function App() {
         <Route path="/dashboard" element={<ProtectedRoute><UserDashboard /></ProtectedRoute>} />
         <Route path="/gov-dashboard" element={<ProtectedRoute><GovDashboard /></ProtectedRoute>} />
         <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
+        <Route path="/marketplace" element={<ProtectedRoute><Marketplace /></ProtectedRoute>} />
       </Routes>
     </BrowserRouter>
   );

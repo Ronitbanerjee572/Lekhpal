@@ -357,6 +357,53 @@ async function getRecentLandActivity(req, res) {
     }
 }
 
+async function getUserOwnedLands(req, res) {
+    try {
+        const { walletAddress } = req.query;
+
+        if (!walletAddress) {
+            return res.status(400).json({
+                success: false,
+                message: 'walletAddress query parameter required'
+            });
+        }
+
+        const landCount = await landRegistryContract.landCount();
+        const ownedLands = [];
+
+        for (let i = 1; i <= landCount; i++) {
+            const land = await landRegistryContract.lands(i);
+            if (land.currentOwner.toLowerCase() === walletAddress.toLowerCase()) {
+                ownedLands.push({
+                    id: land.id.toString(),
+                    owner: land.currentOwner,
+                    khatian: land.khatian,
+                    state: land.state,
+                    city: land.city,
+                    ward: land.ward,
+                    area: land.area.toString(),
+                    value: ethers.formatEther(land.governmentValue),
+                    registeredAt: land.registeredAt.toString(),
+                    deedType: land.deedType
+                });
+            }
+        }
+
+        return res.status(200).json({
+            success: true,
+            lands: ownedLands
+        });
+
+    } catch (err) {
+        console.error('Error getting user owned lands:', err);
+        return res.status(500).json({
+            success: false,
+            message: 'Failed to fetch owned lands',
+            error: err.message
+        });
+    }
+}
+
 
 module.exports = {
     registerLand,
@@ -366,4 +413,5 @@ module.exports = {
     getLandDetails,
     checkAdmin,
     getRecentLandActivity,
+    getUserOwnedLands,
 };

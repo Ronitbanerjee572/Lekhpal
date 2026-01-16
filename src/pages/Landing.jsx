@@ -30,6 +30,37 @@ export default function Landing() {
         <p className="text-base sm:text-lg md:text-xl text-gray-600 mb-6 sm:mb-8 max-w-lg leading-relaxed">
           The future of property management. Blockchain-powered land ownership that is transparent, immutable, and secure.
         </p>
+        <div className="flex flex-wrap items-center gap-3 sm:gap-4 mb-6 sm:mb-8">
+          {[{
+            name: 'Google Cloud',
+            src: 'https://cdn.simpleicons.org/googlecloud/4285F4'
+          }, {
+            name: 'Google Maps',
+            src: 'https://cdn.simpleicons.org/googlemaps/34A853'
+          }, {
+            name: 'Google Web3',
+            src: 'https://cdn.simpleicons.org/google/4285F4'
+          }, {
+            name: 'Vertex AI',
+            src: 'https://cdn.simpleicons.org/google/4285F4'
+          }, {
+            name: 'Ethereum',
+            src: 'https://cdn.simpleicons.org/ethereum/3C3C3D'
+          }].map((logo) => (
+            <div
+              key={logo.name}
+              className="flex items-center gap-2 px-3 sm:px-4 py-1.5 rounded-full bg-white shadow-sm border border-gray-200"
+            >
+              <img
+                src={logo.src}
+                alt={`${logo.name} logo`}
+                className="h-5 w-5 sm:h-6 sm:w-6 object-contain"
+                loading="lazy"
+              />
+              <span className="text-sm sm:text-base font-semibold text-gray-700">{logo.name}</span>
+            </div>
+          ))}
+        </div>
         <div>
              <Link to="/auth" className="inline-block bg-brand-text text-white px-6 sm:px-8 py-3 sm:py-4 rounded-lg font-bold hover:bg-brand-accent transition shadow-xl text-base sm:text-lg">
                 Get Started

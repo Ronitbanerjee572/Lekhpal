@@ -30,6 +30,16 @@ const userSchema = mongoose.Schema({
     type: String,
     unique: true,
     sparse: true
+  },
+  buyerStatus: {
+    type: String,
+    enum: ['not_requested', 'pending', 'approved', 'rejected'],
+    default: 'not_requested'
+  },
+  sellerStatus: {
+    type: String,
+    enum: ['not_requested', 'pending', 'approved', 'rejected'],
+    default: 'not_requested'
   }
 }, {timestamps: true});
 

@@ -6,6 +6,7 @@ var cors = require('cors')
 const routes = require("./Routes/user")
 const blockchainRoutes = require("./Routes/blockchain");
 const landRequestRoutes = require("./Routes/landRequest");
+const marketplaceRoutes = require("./Routes/marketplace");
 const app = express()
 
 // CORS configuration - allow frontend domains
@@ -52,6 +53,7 @@ var port = process.env.PORT || 3001
 app.use("/", routes);
 app.use("/blockchain", blockchainRoutes);
 app.use("/land-request", landRequestRoutes);
+app.use("/marketplace", marketplaceRoutes);
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {

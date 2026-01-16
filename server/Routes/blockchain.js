@@ -9,6 +9,7 @@ const {
     getLandDetails,
     checkAdmin,
     getRecentLandActivity,
+    getUserOwnedLands,
 } = require("../Controller/blockchain");
 
 const router = express.Router();
@@ -20,5 +21,6 @@ router.get("/pending-deals", protect, getPendingDeals);
 router.get("/land/:landId", protect, getLandDetails);
 router.get("/check-admin", protect, checkAdmin);
 router.get('/recent-activity', protect, getRecentLandActivity);
+router.get('/user-owned-lands', protect, getUserOwnedLands);
 
 module.exports = router;

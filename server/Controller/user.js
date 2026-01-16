@@ -62,6 +62,9 @@ async function handleUserSignup(req, res) {
                 contactNo: user.contactNo,
                 email: user.email,
                 pinCode: user.pinCode,
+                walletAddress: user.walletAddress,
+                buyerStatus: user.buyerStatus,
+                sellerStatus: user.sellerStatus,
                 token: generateToken(user),
             });
         } else {
@@ -93,6 +96,9 @@ async function handleUserLogin(req, res) {
                 email: user.email,
                 pinCode: user.pinCode,
                 role: user.role,
+                walletAddress: user.walletAddress,
+                buyerStatus: user.buyerStatus,
+                sellerStatus: user.sellerStatus,
                 token: generateToken(user),
             });
         } else {
@@ -117,6 +123,9 @@ function getCurrentUser(req, res) {
         email: user.email,
         pinCode: user.pinCode,
         role: user.role,
+        walletAddress: user.walletAddress,
+        buyerStatus: user.buyerStatus,
+        sellerStatus: user.sellerStatus,
     });
 }
 
@@ -210,9 +219,103 @@ async function updateUserProfile(req, res) {
 
 }
 
+async function requestMarketplaceRole(req, res) {
+    const { roleType } = req.body;
+    const validRoles = ['buyer', 'seller'];
+
+    if (!validRoles.includes(roleType)) {
+        return res.status(400).json({ message: 'roleType must be buyer or seller' });
+    }
+
+    const statusField = roleType === 'buyer' ? 'buyerStatus' : 'sellerStatus';
+
+    try {
+        const user = await User.findById(req.user._id);
+        if (!user) {
+            return res.status(404).json({ message: 'User not found' });
+        }
+
+        if (user[statusField] === 'approved') {
+            return res.status(200).json({
+                message: `${roleType} already approved`,
+                buyerStatus: user.buyerStatus,
+                sellerStatus: user.sellerStatus,
+            });
+        }
+
+        if (user[statusField] === 'pending') {
+            return res.status(200).json({
+                message: `${roleType} request already pending`,
+                buyerStatus: user.buyerStatus,
+                sellerStatus: user.sellerStatus,
+            });
+        }
+
+        user[statusField] = 'pending';
+        await user.save();
+
+        return res.status(200).json({
+            message: `${roleType} request submitted for approval`,
+            buyerStatus: user.buyerStatus,
+            sellerStatus: user.sellerStatus,
+        });
+    } catch (err) {
+        console.error('Marketplace role request error:', err);
+        return res.status(500).json({ message: 'Server error', error: err.message });
+    }
+}
+
+async function updateMarketplaceRoleStatus(req, res) {
+    const { userId, roleType, status } = req.body;
+    const validRoles = ['buyer', 'seller'];
+    const validStatuses = ['approved', 'rejected'];
+
+    if (!validRoles.includes(roleType) || !validStatuses.includes(status)) {
+        return res.status(400).json({ message: 'Invalid roleType or status' });
+    }
+
+    const statusField = roleType === 'buyer' ? 'buyerStatus' : 'sellerStatus';
+
+    try {
+        const user = await User.findById(userId);
+        if (!user) {
+            return res.status(404).json({ message: 'User not found' });
+        }
+
+        user[statusField] = status;
+        await user.save();
+
+        return res.status(200).json({
+            message: `${roleType} ${status}`,
+            buyerStatus: user.buyerStatus,
+            sellerStatus: user.sellerStatus,
+        });
+    } catch (err) {
+        console.error('Update marketplace role error:', err);
+        return res.status(500).json({ message: 'Server error', error: err.message });
+    }
+}
+
+async function getPendingMarketplaceRequests(req, res) {
+    try {
+        const pendingBuyers = await User.find({ buyerStatus: 'pending' }).select('-password');
+        const pendingSellers = await User.find({ sellerStatus: 'pending' }).select('-password');
+
+        return res.status(200).json({
+            success: true,
+            pendingBuyers,
+            pendingSellers,
+        });
+    } catch (err) {
+        console.error('Get pending marketplace requests error:', err);
+        return res.status(500).json({ message: 'Server error', error: err.message });
+    }
+}
+
 module.exports = {
   handleUserSignup,
   handleUserLogin,
   getCurrentUser,
   updateUserProfile,
-};
+    requestMarketplaceRole,
+    updateMarketplaceRoleStatus,  getPendingMarketplaceRequests,};

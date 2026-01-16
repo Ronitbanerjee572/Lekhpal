@@ -24,7 +24,7 @@ function Model(props) {
     ref.current.rotation.z = 0;
   });
 
-  return <primitive ref={ref} object={gltf.scene} scale={props.scale ?? 0.37} position={props.position ?? [0, -1.2, 0]} />;
+  return <primitive ref={ref} object={gltf.scene} scale={props.scale ?? 0.37} position={props.position ?? [0, -1.3, 0]} />;
 }
 
 useGLTF.preload(modelPath);
@@ -32,13 +32,14 @@ useGLTF.preload(modelPath);
 export default function ThreeScene() {
   return (
     <Canvas className="h-full w-full" camera={{ position: [0, 0, 5], fov: 45 }}>
-      <ambientLight intensity={1.4} />
-      <spotLight position={[10, 10, 10]} angle={0.15} penumbra={1} intensity={2} />
-      <pointLight position={[-10, -10, -10]} intensity={1.5} />
+      <ambientLight intensity={0.5} />
+      {/* <spotLight position={[10, 10, 10]} angle={0.15} penumbra={1} intensity={2} /> */}
+      <pointLight position={[1, 1, 1.2]} intensity={5} />
+      <pointLight position={[-1, 0, 2.5]} intensity={4} />
       <Suspense fallback={<mesh><boxGeometry /><meshStandardMaterial color="#ee6611" wireframe /></mesh>}>
         <Model />
       </Suspense>
-      <OrbitControls enableZoom={true} enablePan={false} enableRotate={false} />
+      <OrbitControls enableZoom={false} enablePan={false} enableRotate={false} />
     </Canvas>
   );
 }

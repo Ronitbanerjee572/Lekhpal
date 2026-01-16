@@ -3,11 +3,11 @@ import { useNavigate } from 'react-router-dom';
 import { FileCheck, DollarSign, PenTool, Activity, Wallet, AlertCircle, CheckCircle, LogOut, User } from 'lucide-react';
 import axios from 'axios';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8010';
 
 export default function GovDashboard() {
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState('register'); // 'register', 'pending-requests'
+  const [activeTab, setActiveTab] = useState('register'); // 'register', 'pending-requests', 'marketplace-requests', 'sale-listings'
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(null);
@@ -39,6 +39,9 @@ export default function GovDashboard() {
   // Pending Deals
   const [pendingDeals, setPendingDeals] = useState([]);
   const [pendingLandRequests, setPendingLandRequests] = useState([]);
+  const [pendingBuyers, setPendingBuyers] = useState([]);
+  const [pendingSellers, setPendingSellers] = useState([]);
+  const [pendingSaleListings, setPendingSaleListings] = useState([]);
   const [recentActivity, setRecentActivity] = useState([]);
   const [processingRequestId, setProcessingRequestId] = useState(null);
   const [rejectionReason, setRejectionReason] = useState('');
@@ -373,7 +376,6 @@ export default function GovDashboard() {
     }
   };
 
-<<<<<<< HEAD
   const fetchPendingLandRequests = async () => {
     try {
       setLoading(true);
@@ -389,14 +391,6 @@ export default function GovDashboard() {
     }
   };
 
-  // Fetch pending requests when tab changes
-  useEffect(() => {
-    if (activeTab === 'pending-requests' && isAdmin) {
-      fetchPendingLandRequests();
-    }
-  }, [activeTab, isAdmin]);
-
-=======
   const loadRecentActivity = async () => {
     try {
       const res = await axios.get(
@@ -411,7 +405,134 @@ export default function GovDashboard() {
     }
   };
 
->>>>>>> 77991342e28dc651681420c34c1766fe4dbc3b42
+  // Fetch pending requests when tab changes
+  useEffect(() => {
+    if (activeTab === 'pending-requests' && isAdmin) {
+      fetchPendingLandRequests();
+    } else if (activeTab === 'marketplace-requests' && isAdmin) {
+      fetchPendingMarketplaceRequests();
+    } else if (activeTab === 'sale-listings' && isAdmin) {
+      fetchPendingSaleListings();
+    }
+  }, [activeTab, isAdmin]);
+
+  const fetchPendingMarketplaceRequests = async () => {
+    try {
+      setLoading(true);
+      const response = await axios.get(`${API_URL}/marketplace/pending-requests`, getAuthHeaders());
+      if (response.data.success) {
+        setPendingBuyers(response.data.pendingBuyers || []);
+        setPendingSellers(response.data.pendingSellers || []);
+      }
+    } catch (err) {
+      console.error("Error fetching marketplace requests:", err);
+      setError("Failed to fetch marketplace requests");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchPendingSaleListings = async () => {
+    try {
+      setLoading(true);
+      const response = await axios.get(`${API_URL}/marketplace/pending-listings`, getAuthHeaders());
+      if (response.data.success) {
+        setPendingSaleListings(response.data.listings || []);
+      }
+    } catch (err) {
+      console.error("Error fetching pending listings:", err);
+      setError("Failed to fetch pending sale listings");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleApproveMarketplaceRole = async (userId, roleType) => {
+    try {
+      setProcessingRequestId(userId);
+      const response = await axios.post(
+        `${API_URL}/marketplace/role-status`,
+        { userId, roleType, status: 'approved' },
+        getAuthHeaders()
+      );
+
+      setSuccess(response.data.message);
+      setTimeout(() => setSuccess(null), 3000);
+      await fetchPendingMarketplaceRequests();
+    } catch (err) {
+      console.error("Error approving role:", err);
+      setError(err.response?.data?.message || "Failed to approve");
+      setTimeout(() => setError(null), 3000);
+    } finally {
+      setProcessingRequestId(null);
+    }
+  };
+
+  const handleRejectMarketplaceRole = async (userId, roleType) => {
+    try {
+      setProcessingRequestId(userId);
+      const response = await axios.post(
+        `${API_URL}/marketplace/role-status`,
+        { userId, roleType, status: 'rejected' },
+        getAuthHeaders()
+      );
+
+      setSuccess(response.data.message);
+      setTimeout(() => setSuccess(null), 3000);
+      await fetchPendingMarketplaceRequests();
+    } catch (err) {
+      console.error("Error rejecting role:", err);
+      setError(err.response?.data?.message || "Failed to reject");
+      setTimeout(() => setError(null), 3000);
+    } finally {
+      setProcessingRequestId(null);
+    }
+  };
+
+  const handleApproveSaleListing = async (listingId) => {
+    try {
+      setProcessingRequestId(listingId);
+      const response = await axios.post(
+        `${API_URL}/marketplace/listings/status`,
+        { listingId, status: 'approved' },
+        getAuthHeaders()
+      );
+
+      setSuccess('Sale listing approved successfully');
+      setTimeout(() => setSuccess(null), 3000);
+      await fetchPendingSaleListings();
+    } catch (err) {
+      console.error("Error approving listing:", err);
+      setError(err.response?.data?.message || "Failed to approve listing");
+      setTimeout(() => setError(null), 3000);
+    } finally {
+      setProcessingRequestId(null);
+    }
+  };
+
+  const handleRejectSaleListing = async (listingId, reason) => {
+    try {
+      setProcessingRequestId(listingId);
+      const response = await axios.post(
+        `${API_URL}/marketplace/listings/status`,
+        { listingId, status: 'rejected', reason },
+        getAuthHeaders()
+      );
+
+      setSuccess('Sale listing rejected');
+      setTimeout(() => setSuccess(null), 3000);
+      await fetchPendingSaleListings();
+    } catch (err) {
+      console.error("Error rejecting listing:", err);
+      setError(err.response?.data?.message || "Failed to reject listing");
+      setTimeout(() => setError(null), 3000);
+    } finally {
+      setProcessingRequestId(null);
+      setShowRejectionModal(null);
+      setRejectionReason('');
+    }
+  };
+
   return (
     <div className="min-h-screen bg-brand-bg p-4 sm:p-6 md:p-8">
       <header className="mb-6 sm:mb-8 flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
@@ -503,6 +624,26 @@ export default function GovDashboard() {
           >
             Pending Requests ({pendingLandRequests.length})
           </button>
+          <button
+            onClick={() => setActiveTab('marketplace-requests')}
+            className={`px-4 sm:px-6 py-2 sm:py-3 rounded-lg font-semibold transition ${
+              activeTab === 'marketplace-requests'
+                ? 'bg-indigo-600 text-white'
+                : 'bg-white text-gray-700 hover:bg-gray-50'
+            }`}
+          >
+            Marketplace Requests ({pendingBuyers.length + pendingSellers.length})
+          </button>
+          <button
+            onClick={() => setActiveTab('sale-listings')}
+            className={`px-4 sm:px-6 py-2 sm:py-3 rounded-lg font-semibold transition ${
+              activeTab === 'sale-listings'
+                ? 'bg-indigo-600 text-white'
+                : 'bg-white text-gray-700 hover:bg-gray-50'
+            }`}
+          >
+            Sale Listings ({pendingSaleListings.length})
+          </button>
         </div>
 
         {/* Register Tab */}
@@ -591,13 +732,6 @@ export default function GovDashboard() {
                     value={registerForm.state}
                     onChange={(e) => setRegisterForm({ ...registerForm, state: e.target.value })}
                     disabled={loading || !isAdmin}
-<<<<<<< HEAD
-                    className="w-full bg-brand-text text-white py-3 rounded-lg font-bold hover:bg-brand-accent transition disabled:opacity-50 disabled:cursor-not-allowed mt-2"
-                  >
-                    {loading ? 'Registering...' : currentRequestId ? 'Approve & Register Request' : 'Register Land'}
-                  </button>
-              </form>
-=======
                   />
                 </div>
                 <div>
@@ -618,18 +752,18 @@ export default function GovDashboard() {
                   <input
                     type="text"
                     placeholder="Ward"
-                    className="w-full p-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-accent"
+                    className="w-full p-2.5 sm:p-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-accent text-sm sm:text-base"
                     value={registerForm.ward}
                     onChange={(e) => setRegisterForm({ ...registerForm, ward: e.target.value })}
                     disabled={loading || !isAdmin}
                   />
                 </div>
                 <div>
-                  <label className="text-sm font-medium text-gray-700 block mb-1">Area (sq units)</label>
+                  <label className="text-sm font-medium text-gray-700 block mb-1">Area (Sq Units)</label>
                   <input
-                    type="number"
+                    type="text"
                     placeholder="Area"
-                    className="w-full p-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-accent"
+                    className="w-full p-2.5 sm:p-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-accent text-sm sm:text-base"
                     value={registerForm.area}
                     onChange={(e) => setRegisterForm({ ...registerForm, area: e.target.value })}
                     disabled={loading || !isAdmin}
@@ -652,13 +786,11 @@ export default function GovDashboard() {
                 disabled={loading || !isAdmin}
                 className="w-full bg-brand-text text-white py-3 rounded-lg font-bold hover:bg-brand-accent transition disabled:opacity-50 disabled:cursor-not-allowed mt-2"
               >
-                {loading ? 'Registering...' : 'Register Land'}
+                {loading ? 'Registering...' : currentRequestId ? 'Approve & Register Request' : 'Register Land'}
               </button>
-            </form>
->>>>>>> 77991342e28dc651681420c34c1766fe4dbc3b42
+              </form>
           </div>
 
-          {/* Pending Approvals */}
           <div className="bg-white p-4 sm:p-6 rounded-xl shadow-md border border-gray-100 lg:col-start-3 lg:row-span-2">
             <div className="flex items-center gap-2 sm:gap-3 mb-4 sm:mb-6">
               <div className="p-2 sm:p-3 bg-purple-100 rounded-lg text-purple-600">
@@ -854,6 +986,271 @@ export default function GovDashboard() {
                 ))}
               </div>
             )}
+          </div>
+        )}
+
+        {/* Marketplace Requests Tab */}
+        {activeTab === 'marketplace-requests' && (
+          <div className="space-y-6">
+            {/* Pending Buyer Requests */}
+            <div className="bg-white rounded-lg shadow-lg p-6 sm:p-8">
+              <h2 className="text-2xl font-bold text-gray-800 mb-6 flex items-center gap-2">
+                <CheckCircle className="text-indigo-600" />
+                Pending Buyer Requests ({pendingBuyers.length})
+              </h2>
+
+              {pendingBuyers.length === 0 ? (
+                <div className="text-center py-8">
+                  <AlertCircle className="w-12 h-12 text-gray-400 mx-auto mb-3" />
+                  <p className="text-gray-500">No pending buyer requests</p>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {pendingBuyers.map((user) => (
+                    <div
+                      key={user._id}
+                      className="border border-indigo-200 p-6 rounded-lg hover:shadow-md transition bg-indigo-50"
+                    >
+                      <div className="flex justify-between items-start mb-4">
+                        <div className="flex-1">
+                          <h3 className="text-lg font-semibold text-gray-800">
+                            {user.name}
+                          </h3>
+                          <p className="text-sm text-gray-600">{user.email}</p>
+                          <p className="text-sm text-gray-600">{user.contactNo}</p>
+                          {user.walletAddress && (
+                            <p className="text-xs text-gray-500 mt-2 font-mono">
+                              Wallet: {user.walletAddress.substring(0, 10)}...{user.walletAddress.substring(user.walletAddress.length - 8)}
+                            </p>
+                          )}
+                        </div>
+                        <span className="bg-yellow-100 text-yellow-800 px-3 py-1 rounded-full text-sm font-semibold">
+                          Buyer Request
+                        </span>
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-4 mb-4">
+                        <div>
+                          <p className="text-xs text-gray-600">Pin Code</p>
+                          <p className="font-semibold">{user.pinCode}</p>
+                        </div>
+                        <div>
+                          <p className="text-xs text-gray-600">Role</p>
+                          <p className="font-semibold capitalize">{user.role}</p>
+                        </div>
+                      </div>
+
+                      <div className="flex gap-3">
+                        <button
+                          onClick={() => handleApproveMarketplaceRole(user._id, 'buyer')}
+                          disabled={processingRequestId === user._id}
+                          className="flex-1 bg-green-600 text-white py-2 rounded-lg font-semibold hover:bg-green-700 disabled:opacity-50 transition"
+                        >
+                          {processingRequestId === user._id ? 'Processing...' : 'Approve as Buyer'}
+                        </button>
+                        <button
+                          onClick={() => handleRejectMarketplaceRole(user._id, 'buyer')}
+                          disabled={processingRequestId === user._id}
+                          className="flex-1 bg-red-600 text-white py-2 rounded-lg font-semibold hover:bg-red-700 disabled:opacity-50 transition"
+                        >
+                          Reject
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Pending Seller Requests */}
+            <div className="bg-white rounded-lg shadow-lg p-6 sm:p-8">
+              <h2 className="text-2xl font-bold text-gray-800 mb-6 flex items-center gap-2">
+                <FileCheck className="text-green-600" />
+                Pending Seller Requests ({pendingSellers.length})
+              </h2>
+
+              {pendingSellers.length === 0 ? (
+                <div className="text-center py-8">
+                  <AlertCircle className="w-12 h-12 text-gray-400 mx-auto mb-3" />
+                  <p className="text-gray-500">No pending seller requests</p>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {pendingSellers.map((user) => (
+                    <div
+                      key={user._id}
+                      className="border border-green-200 p-6 rounded-lg hover:shadow-md transition bg-green-50"
+                    >
+                      <div className="flex justify-between items-start mb-4">
+                        <div className="flex-1">
+                          <h3 className="text-lg font-semibold text-gray-800">
+                            {user.name}
+                          </h3>
+                          <p className="text-sm text-gray-600">{user.email}</p>
+                          <p className="text-sm text-gray-600">{user.contactNo}</p>
+                          {user.walletAddress && (
+                            <p className="text-xs text-gray-500 mt-2 font-mono">
+                              Wallet: {user.walletAddress.substring(0, 10)}...{user.walletAddress.substring(user.walletAddress.length - 8)}
+                            </p>
+                          )}
+                        </div>
+                        <span className="bg-yellow-100 text-yellow-800 px-3 py-1 rounded-full text-sm font-semibold">
+                          Seller Request
+                        </span>
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-4 mb-4">
+                        <div>
+                          <p className="text-xs text-gray-600">Pin Code</p>
+                          <p className="font-semibold">{user.pinCode}</p>
+                        </div>
+                        <div>
+                          <p className="text-xs text-gray-600">Role</p>
+                          <p className="font-semibold capitalize">{user.role}</p>
+                        </div>
+                      </div>
+
+                      <div className="flex gap-3">
+                        <button
+                          onClick={() => handleApproveMarketplaceRole(user._id, 'seller')}
+                          disabled={processingRequestId === user._id}
+                          className="flex-1 bg-green-600 text-white py-2 rounded-lg font-semibold hover:bg-green-700 disabled:opacity-50 transition"
+                        >
+                          {processingRequestId === user._id ? 'Processing...' : 'Approve as Seller'}
+                        </button>
+                        <button
+                          onClick={() => handleRejectMarketplaceRole(user._id, 'seller')}
+                          disabled={processingRequestId === user._id}
+                          className="flex-1 bg-red-600 text-white py-2 rounded-lg font-semibold hover:bg-red-700 disabled:opacity-50 transition"
+                        >
+                          Reject
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Sale Listings Tab */}
+        {activeTab === 'sale-listings' && (
+          <div className="space-y-6">
+            <div className="bg-white rounded-lg shadow-lg p-6 sm:p-8">
+              <h2 className="text-2xl font-bold text-gray-800 mb-6 flex items-center gap-2">
+                <DollarSign className="text-purple-600" />
+                Pending Sale Listings ({pendingSaleListings.length})
+              </h2>
+
+              {pendingSaleListings.length === 0 ? (
+                <div className="text-center py-8">
+                  <AlertCircle className="w-12 h-12 text-gray-400 mx-auto mb-3" />
+                  <p className="text-gray-500">No pending sale listings</p>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {pendingSaleListings.map((listing) => (
+                    <div
+                      key={listing._id}
+                      className="border border-purple-200 p-6 rounded-lg hover:shadow-md transition bg-purple-50"
+                    >
+                      <div className="flex justify-between items-start mb-4">
+                        <div className="flex-1">
+                          <h3 className="text-lg font-semibold text-gray-800">
+                            Land ID: #{listing.landId}
+                          </h3>
+                          {listing.userId && (
+                            <div className="mt-2">
+                              <p className="text-sm text-gray-600">Seller: {listing.userId.name}</p>
+                              <p className="text-sm text-gray-600">{listing.userId.email}</p>
+                              {listing.userId.walletAddress && (
+                                <p className="text-xs text-gray-500 mt-1 font-mono">
+                                  Wallet: {listing.userId.walletAddress.substring(0, 10)}...{listing.userId.walletAddress.substring(listing.userId.walletAddress.length - 8)}
+                                </p>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                        <span className="bg-yellow-100 text-yellow-800 px-3 py-1 rounded-full text-sm font-semibold">
+                          Pending
+                        </span>
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-4 mb-4">
+                        <div>
+                          <p className="text-xs text-gray-600">Price (Wei)</p>
+                          <p className="font-semibold">{listing.priceWei}</p>
+                        </div>
+                        <div>
+                          <p className="text-xs text-gray-600">Price (ETH)</p>
+                          <p className="font-semibold">{(parseFloat(listing.priceWei) / 1e18).toFixed(4)} ETH</p>
+                        </div>
+                        <div>
+                          <p className="text-xs text-gray-600">Submitted</p>
+                          <p className="font-semibold">{new Date(listing.createdAt).toLocaleDateString()}</p>
+                        </div>
+                        <div>
+                          <p className="text-xs text-gray-600">Status</p>
+                          <p className="font-semibold capitalize">{listing.status}</p>
+                        </div>
+                      </div>
+
+                      <div className="flex gap-3">
+                        <button
+                          onClick={() => handleApproveSaleListing(listing._id)}
+                          disabled={processingRequestId === listing._id}
+                          className="flex-1 bg-green-600 text-white py-2 rounded-lg font-semibold hover:bg-green-700 disabled:opacity-50 transition"
+                        >
+                          {processingRequestId === listing._id ? 'Processing...' : 'Approve Listing'}
+                        </button>
+                        <button
+                          onClick={() => {
+                            setShowRejectionModal(listing._id);
+                            setRejectionReason('');
+                          }}
+                          disabled={processingRequestId === listing._id}
+                          className="flex-1 bg-red-600 text-white py-2 rounded-lg font-semibold hover:bg-red-700 disabled:opacity-50 transition"
+                        >
+                          Reject
+                        </button>
+                      </div>
+
+                      {/* Rejection Modal */}
+                      {showRejectionModal === listing._id && (
+                        <div className="mt-4 p-4 bg-white border border-red-300 rounded-lg shadow-inner">
+                          <h4 className="text-sm font-semibold text-gray-800 mb-2">Reason for Rejection</h4>
+                          <textarea
+                            value={rejectionReason}
+                            onChange={(e) => setRejectionReason(e.target.value)}
+                            placeholder="Enter rejection reason..."
+                            className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 mb-3 resize-none"
+                            rows="3"
+                          />
+                          <div className="flex gap-2">
+                            <button
+                              onClick={() => handleRejectSaleListing(listing._id, rejectionReason)}
+                              className="flex-1 bg-red-600 text-white py-2 rounded-lg font-semibold hover:bg-red-700 transition"
+                            >
+                              Confirm Rejection
+                            </button>
+                            <button
+                              onClick={() => {
+                                setShowRejectionModal(null);
+                                setRejectionReason('');
+                              }}
+                              className="flex-1 bg-gray-300 text-gray-800 py-2 rounded-lg font-semibold hover:bg-gray-400 transition"
+                            >
+                              Cancel
+                            </button>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
         )}
         </>
