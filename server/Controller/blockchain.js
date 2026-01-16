@@ -80,15 +80,21 @@ async function registerLand(req, res) {
             }
         );
 
-        console.log("Transaction sent:", tx.hash);
-        console.log("Check status at: https://sepolia.etherscan.io/tx/" + tx.hash);
+        const etherscanUrl = `https://sepolia.etherscan.io/tx/${tx.hash}`;
+        console.log("\n========== TRANSACTION INITIATED ==========");
+        console.log("Transaction Hash:", tx.hash);
+        console.log("📊 View on Etherscan:", etherscanUrl);
+        console.log("Khatian Number:", khatian);
+        console.log("Owner Address:", ownerAddress);
+        console.log("Government Valuation:", valuation, "ETH");
+        console.log("==========================================\n");
 
         // Verify network
         const network = await wallet.provider.getNetwork();
-        console.log("Network:", network.name, "Chain ID:", network.chainId);
+        console.log("🌐 Network:", network.name, "| Chain ID:", network.chainId);
 
         // Wait for transaction confirmation with timeout
-        console.log("Waiting for transaction confirmation...");
+        console.log("⏳ Waiting for transaction confirmation...");
 
         let receipt;
         try {
@@ -100,14 +106,18 @@ async function registerLand(req, res) {
                 )
             ]);
 
-            console.log("✅ Transaction confirmed!");
-            console.log("Block number:", receipt.blockNumber);
-            console.log("Gas used:", receipt.gasUsed.toString());
-            console.log("Status:", receipt.status === 1 ? "Success" : "Failed");
+            console.log("\n========== TRANSACTION CONFIRMED ==========");
+            console.log("✅ Status: SUCCESS");
+            console.log("📊 Etherscan Link:", etherscanUrl);
+            console.log("Block Number:", receipt.blockNumber);
+            console.log("Gas Used:", receipt.gasUsed.toString());
+            console.log("Transaction Hash:", receipt.hash);
+            console.log("==========================================\n");
         } catch (waitError) {
             // If timeout or error, try to get transaction status manually
-            console.log("⚠️ Wait timeout or error:", waitError.message);
-            console.log("Checking transaction status manually...");
+            console.log("⚠️  Wait timeout or error:", waitError.message);
+            console.log("🔍 Checking transaction status manually...");
+            console.log("📊 View on Etherscan:", etherscanUrl);
 
             const txStatus = await wallet.provider.getTransaction(tx.hash);
             if (!txStatus) {
@@ -115,28 +125,34 @@ async function registerLand(req, res) {
                     success: false,
                     message: "Transaction not found. It may have been dropped from mempool.",
                     txHash: tx.hash,
-                    etherscanUrl: `https://sepolia.etherscan.io/tx/${tx.hash}`
+                    etherscanUrl: etherscanUrl
                 });
             }
 
             if (txStatus.blockNumber) {
-                console.log("Transaction is mined in block:", txStatus.blockNumber);
+                console.log("✅ Transaction is mined in block:", txStatus.blockNumber);
+                console.log("📊 Etherscan Link:", etherscanUrl);
                 receipt = await wallet.provider.getTransactionReceipt(tx.hash);
             } else {
+                console.log("⏳ Transaction still pending...");
+                console.log("📊 View on Etherscan:", etherscanUrl);
                 return res.status(202).json({
                     success: 'pending',
                     message: "Transaction is pending confirmation. Check Etherscan for status.",
                     txHash: tx.hash,
-                    etherscanUrl: `https://sepolia.etherscan.io/tx/${tx.hash}`
+                    etherscanUrl: etherscanUrl
                 });
             }
         }
 
         if (receipt && receipt.status === 0) {
+            console.log("❌ TRANSACTION FAILED");
+            console.log("📊 Etherscan Link:", etherscanUrl);
             return res.status(500).json({
                 success: false,
                 message: "Transaction failed on blockchain",
-                transactionHash: receipt.hash
+                transactionHash: receipt.hash,
+                etherscanUrl: etherscanUrl
             });
         }
 
@@ -144,6 +160,7 @@ async function registerLand(req, res) {
             success: true,
             message: `Land registered successfully! Khatian: ${khatian}`,
             transactionHash: receipt.hash,
+            etherscanUrl: etherscanUrl,
             blockNumber: receipt.blockNumber
         });
 
@@ -178,12 +195,27 @@ async function setValuation(req, res) {
         const valueInWei = ethers.parseEther(value.toString());
         const tx = await landRegistryContract.setValuation(parseInt(landId), valueInWei);
 
+        const etherscanUrl = `https://sepolia.etherscan.io/tx/${tx.hash}`;
+        console.log("\n========== SET VALUATION INITIATED ==========");
+        console.log("Transaction Hash:", tx.hash);
+        console.log("📊 View on Etherscan:", etherscanUrl);
+        console.log("Land ID:", landId);
+        console.log("New Valuation:", value, "ETH");
+        console.log("==========================================");
+
         const receipt = await tx.wait();
+
+        console.log("\n========== SET VALUATION CONFIRMED ==========");
+        console.log("✅ Status: SUCCESS");
+        console.log("📊 Etherscan Link:", etherscanUrl);
+        console.log("Block Number:", receipt.blockNumber);
+        console.log("=========================================\n");
 
         return res.status(200).json({
             success: true,
             message: `Valuation updated for Land #${landId}!`,
             transactionHash: receipt.hash,
+            etherscanUrl: etherscanUrl,
             blockNumber: receipt.blockNumber
         });
 
@@ -216,12 +248,27 @@ async function approveDeal(req, res) {
         }
 
         const tx = await escrowContract.approveDeal(dealId);
+        
+        const etherscanUrl = `https://sepolia.etherscan.io/tx/${tx.hash}`;
+        console.log("\n========== DEAL APPROVAL INITIATED ==========");
+        console.log("Transaction Hash:", tx.hash);
+        console.log("📊 View on Etherscan:", etherscanUrl);
+        console.log("Deal ID:", dealId);
+        console.log("==========================================");
+        
         const receipt = await tx.wait();
+
+        console.log("\n========== DEAL APPROVAL CONFIRMED ==========");
+        console.log("✅ Status: SUCCESS");
+        console.log("📊 Etherscan Link:", etherscanUrl);
+        console.log("Block Number:", receipt.blockNumber);
+        console.log("=========================================\n");
 
         return res.status(200).json({
             success: true,
             message: `Deal #${dealId} approved successfully!`,
             transactionHash: receipt.hash,
+            etherscanUrl: etherscanUrl,
             blockNumber: receipt.blockNumber
         });
 
