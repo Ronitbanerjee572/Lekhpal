@@ -273,7 +273,7 @@ export default function GovDashboard() {
 
           {walletAddress && (
             <div className="bg-white p-2 sm:p-3 rounded-lg shadow-sm">
-              <p className="text-xs text-gray-600 mb-1">Backend Wallet</p>
+              <p className="text-xs text-gray-600 mb-1">Admin Wallet</p>
               <p className="font-bold text-brand-accent text-xs sm:text-sm break-all">{walletAddress.slice(0, 6)}...{walletAddress.slice(-4)}</p>
               {isAdmin && <p className="text-xs text-green-600 font-medium">✓ Admin</p>}
             </div>
