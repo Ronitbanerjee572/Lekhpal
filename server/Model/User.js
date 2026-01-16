@@ -25,6 +25,11 @@ const userSchema = mongoose.Schema({
   role: {type: String,
         enum: ['admin', 'user', 'govt'],
         default: 'user'
+  },
+  walletAddress: {
+    type: String,
+    unique: true,
+    sparse: true
   }
 }, {timestamps: true});
 

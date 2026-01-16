@@ -1,6 +1,7 @@
 const User = require("../Model/User");
 const jwt = require("jsonwebtoken");
 const bcrypt = require("bcrypt");
+const { ethers } = require("ethers");
 const { JWT_SECRET } = require("../Config/jwt_secret");
 
 const generateToken = (user) => {
@@ -9,6 +10,12 @@ const generateToken = (user) => {
         JWT_SECRET,
         { expiresIn: "30d" }
     );
+};
+
+// Generate a random wallet for the user
+const generateUserWallet = () => {
+    const wallet = ethers.Wallet.createRandom();
+    return wallet.address;
 };
 
 async function handleUserSignup(req, res) {
@@ -35,13 +42,17 @@ async function handleUserSignup(req, res) {
         const salt = await bcrypt.genSalt(10);
         const hash = await bcrypt.hash(password, salt);
 
+        // Generate wallet address for the user
+        const walletAddress = generateUserWallet();
+
         const user = await User.create({
             name,
             contactNo: formattedContact,
             email,
             password: hash,
             pinCode,
-            role
+            role,
+            walletAddress
         });
 
         if (user) {

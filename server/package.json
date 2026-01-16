@@ -6,6 +6,7 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "start": "node app.js",
+    "dev": "nodemon app.js",
     "server": "node app.js",
     "build": "echo \"No build step required for Node.js backend\""
   },
@@ -31,7 +32,7 @@
     "morgan": "^1.10.0",
     "nexmo": "^2.9.1",
     "nodemailer": "^6.9.7",
-    "nodemon": "^3.0.2",
+    "nodemon": "^3.1.11",
     "passport": "^0.7.0",
     "passport-local": "^1.0.0",
     "pug": "^3.0.2",
